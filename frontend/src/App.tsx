@@ -1,5 +1,5 @@
-import ExportApp from './modules/export/ExportApp';
+import RBACAuthApp from './modules/auth/RBACAuthApp';
 
 export default function App(): JSX.Element {
-  return <ExportApp />;
+  return <RBACAuthApp />;
 }
