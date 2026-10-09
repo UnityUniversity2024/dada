@@ -1,14 +1,17 @@
 
+/* ===== APPEND TO frontend/src/index.css (contract flow + table scroll) ===== */
 
-/* ===== Coffee / Sesame table: fixed area + internal scrollbar (no collapse) ===== */
-.table-panel {
+/* Coffee / Sesame: table scrolls inside fixed frame */
+.table-panel,
+.shipment-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-.table-wrap {
+.table-wrap,
+.shipment-table-scroll {
   overflow: auto !important;
   max-height: min(62vh, 640px);
   min-height: 280px;
@@ -22,7 +25,6 @@
   min-width: 980px;
   border-collapse: separate;
   border-spacing: 0;
-  background: rgba(5, 14, 22, 0.7);
 }
 
 .table-wrap thead th {
@@ -33,19 +35,11 @@
   box-shadow: 0 1px 0 rgba(166, 200, 230, 0.15);
 }
 
-.layout {
-  align-items: stretch;
-}
-
-.layout .table-panel {
-  min-height: 420px;
-}
-
-/* ===== Contract flow — previous multi-panel format ===== */
+/* Contract flow — two-column shell (previous format) */
 .contract-shell {
   max-width: 1460px;
-  margin: 0 auto;
-  display: grid;
+  margin: 0 auto 24px;
+  display: grid !important;
   grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
@@ -68,7 +62,7 @@
 
 .contract-panel,
 .panel-soft {
-  background: rgba(10, 23, 32, 0.88);
+  background: rgba(10, 23, 32, 0.9);
   border: 1px solid rgba(124, 196, 255, 0.16);
   border-radius: 18px;
   padding: 16px;
@@ -84,17 +78,13 @@
   margin-bottom: 12px;
 }
 
-.module-group {
-  margin-bottom: 12px;
-}
-
+.module-group { margin-bottom: 12px; }
 .module-name {
   color: #eaf6ff;
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 6px;
 }
-
 .module-group ul {
   margin: 0;
   padding-left: 16px;
@@ -106,7 +96,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 320px;
+  max-height: 280px;
   overflow: auto;
 }
 
@@ -119,23 +109,9 @@
   border: 1px solid rgba(127, 203, 255, 0.14);
   background: rgba(8, 18, 26, 0.75);
 }
-
-.attachment-row strong {
-  display: block;
-  color: #f1fbff;
-  font-size: 13px;
-}
-
-.attachment-row small {
-  color: #8fc8ef;
-  font-size: 11px;
-}
-
-.attachment-row span {
-  color: #a9dfff;
-  font-size: 11px;
-  white-space: nowrap;
-}
+.attachment-row strong { display: block; color: #f1fbff; font-size: 13px; }
+.attachment-row small { color: #8fc8ef; font-size: 11px; }
+.attachment-row span { color: #a9dfff; font-size: 11px; }
 
 .contract-header-panel {
   display: flex;
@@ -144,31 +120,38 @@
   gap: 12px;
   align-items: flex-start;
 }
-
 .contract-header-panel h2 {
   margin: 0 0 6px;
   font-size: 1.35rem;
   color: #f1fbff;
 }
-
-.contract-header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.approval-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #aaf5cf;
+  background: rgba(97, 218, 113, 0.12);
+  border: 1px solid rgba(97, 218, 113, 0.28);
 }
 
-.contract-kpi-row {
-  display: grid;
+.contract-header-panel .secondary-button,
+.contract-header-panel .primary-button {
+  margin-left: 6px;
+}
+
+.contract-main .kpi-grid {
   grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap: 12px;
+  margin-bottom: 0;
 }
 
 .contract-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 12px 18px;
 }
-
 .contract-field label {
   display: block;
   color: #8fc8ef;
@@ -177,14 +160,12 @@
   text-transform: uppercase;
   margin-bottom: 4px;
 }
-
 .contract-field strong {
   color: #eaf6ff;
   font-size: 13px;
   font-weight: 600;
   word-break: break-word;
 }
-
 .contract-note {
   margin-top: 14px;
   padding: 12px;
@@ -198,91 +179,74 @@
 
 .workflow-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
-
 .workflow-card {
+  position: relative;
   border-radius: 14px;
-  padding: 12px;
+  padding: 12px 12px 12px 16px;
   border: 1px solid rgba(124, 196, 255, 0.16);
-  background: rgba(8, 18, 26, 0.8);
+  background: rgba(8, 18, 26, 0.85);
 }
-
-.workflow-card.done {
-  border-color: rgba(72, 206, 143, 0.35);
-}
-
+.workflow-card.done { border-color: rgba(72, 206, 143, 0.4); }
 .workflow-card.active {
-  border-color: rgba(80, 204, 255, 0.45);
+  border-color: rgba(80, 204, 255, 0.5);
   box-shadow: 0 0 0 1px rgba(80, 204, 255, 0.2);
 }
-
-.workflow-card.pending {
-  opacity: 0.85;
+.workflow-card.pending { opacity: 0.88; }
+.workflow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7dd9ff;
+  margin-bottom: 8px;
 }
-
-.workflow-card strong {
-  display: block;
+.workflow-card.done .workflow-dot { background: #6ee7a8; }
+.workflow-card.active .workflow-dot { background: #5ecbff; }
+.workflow-card.pending .workflow-dot { background: #8a9bb0; }
+.workflow-title {
   color: #f1fbff;
+  font-weight: 700;
   font-size: 13px;
   margin-bottom: 4px;
 }
-
-.workflow-card small {
-  display: block;
+.workflow-owner {
   color: #8fc8ef;
   font-size: 11px;
   margin-bottom: 8px;
 }
-
 .workflow-card p {
   margin: 0 0 10px;
   color: #b5d7e9;
   font-size: 12px;
 }
 
-.workflow-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.contract-lower-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
-.compact-action {
-  padding: 8px 12px !important;
-  font-size: 12px !important;
-}
-
-.role-table {
+.roles-panel .role-table {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
 .role-row {
   display: grid;
-  grid-template-columns: minmax(120px, 180px) 1fr;
+  grid-template-columns: minmax(120px, 170px) 1fr;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(8, 18, 26, 0.7);
   border: 1px solid rgba(124, 196, 255, 0.12);
 }
-
 .role-row ul {
   margin: 0;
   padding-left: 16px;
   color: #b5d7e9;
   font-size: 12px;
-}
-
-.notice-bar {
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(80, 204, 255, 0.12);
-  border: 1px solid rgba(80, 204, 255, 0.28);
-  color: #d8f7ff;
-  font-size: 13px;
 }
 
 .table-header-row {
@@ -293,34 +257,35 @@
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
-
 .table-header-left h3 {
   margin: 0;
   font-size: 1.05rem;
 }
 
+.compact-action {
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+.danger-button {
+  background: linear-gradient(135deg, #7a2a2a, #a33) !important;
+}
+.notice-bar {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(80, 204, 255, 0.12);
+  border: 1px solid rgba(80, 204, 255, 0.28);
+  color: #d8f7ff;
+  font-size: 13px;
+}
+
 @media (max-width: 980px) {
-  .contract-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .contract-sidebar {
-    position: static;
-  }
-
-  .contract-kpi-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .contract-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .role-row {
-    grid-template-columns: 1fr;
-  }
-
-  .table-wrap {
+  .contract-shell { grid-template-columns: 1fr; }
+  .contract-sidebar { position: static; }
+  .contract-main .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .contract-grid { grid-template-columns: 1fr; }
+  .contract-lower-grid { grid-template-columns: 1fr; }
+  .role-row { grid-template-columns: 1fr; }
+  .table-wrap, .shipment-table-scroll {
     max-height: min(55vh, 520px);
     min-height: 240px;
   }
