@@ -277,7 +277,23 @@ const emptyPaymentForm = (): Omit<ContractPayment, 'id'> => ({
   notes: '',
 });
 
-export default function ExportApp(): JSX.Element {
+type ExportAppProps = {
+  role?: string;
+  permissions?: string[];
+  canViewContract?: boolean;
+  canEditContract?: boolean;
+  canAdd?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ExportApp({
+  canViewContract = false,
+  canEditContract = false,
+  canAdd = false,
+  canEdit = false,
+  canDelete = false,
+}: ExportAppProps = {}): JSX.Element {
   const [activeTab, setActiveTab] = useState<ExportTab>('coffee');
   const [rows, setRows] = useState<ExportRow[]>(dataMap.coffee);
   const [selectedRow, setSelectedRow] = useState<ExportRow | null>(dataMap.coffee[0] ?? null);
@@ -1519,6 +1535,12 @@ export default function ExportApp(): JSX.Element {
 
   const contractFlowView = activeTab === 'contract-flow';
 
+  useEffect(() => {
+    if (activeTab === 'contract-flow' && !canViewContract) {
+      setActiveTab('coffee');
+    }
+  }, [activeTab, canViewContract]);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -1651,17 +1673,19 @@ export default function ExportApp(): JSX.Element {
           >
             Sesame
           </button>
-          <button
-            type="button"
-            className={activeTab === 'contract-flow' ? 'tab-button active' : 'tab-button'}
-            onClick={() => setActiveTab('contract-flow')}
-          >
-            Contract flow
-          </button>
+          {canViewContract && (
+            <button
+              type="button"
+              className={activeTab === 'contract-flow' ? 'tab-button active' : 'tab-button'}
+              onClick={() => setActiveTab('contract-flow')}
+            >
+              Contract flow
+            </button>
+          )}
         </div>
 
         <div className="export-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          {!contractFlowView && (
+          {!contractFlowView && canAdd && (
             <button type="button" className="primary-button" onClick={openCreateForm}>
               + Add Record
             </button>
@@ -1729,9 +1753,11 @@ export default function ExportApp(): JSX.Element {
           <div className="contract-sidebar">
             <div className="contract-panel panel-soft">
               <div className="panel-title">Contracts</div>
-              <button type="button" className="primary-button compact-action" style={{ width: '100%', marginBottom: 12 }} onClick={openCreateContract}>
-                + New contract
-              </button>
+              {canEditContract && (
+                <button type="button" className="primary-button compact-action" style={{ width: '100%', marginBottom: 12 }} onClick={openCreateContract}>
+                  + New contract
+                </button>
+              )}
               <div className="attachment-list">
                 {contracts.length === 0 ? (
                   <div className="empty-state compact">No contracts yet</div>
@@ -1788,12 +1814,16 @@ export default function ExportApp(): JSX.Element {
                     <p className="approval-tag">{selectedContract.approvalTag} · {selectedContract.status}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button type="button" className="secondary-button compact-action" onClick={() => openEditContract(selectedContract)}>
-                      Edit
-                    </button>
-                    <button type="button" className="secondary-button compact-action danger-button" onClick={() => deleteContract(selectedContract)}>
-                      Delete
-                    </button>
+                    {canEditContract && (
+                      <button type="button" className="secondary-button compact-action" onClick={() => openEditContract(selectedContract)}>
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button type="button" className="secondary-button compact-action danger-button" onClick={() => deleteContract(selectedContract)}>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2508,12 +2538,16 @@ export default function ExportApp(): JSX.Element {
                   </div>
 
                   <div className="sidebar-actions">
-                    <button type="button" className="primary-button compact-action" onClick={() => openEditForm(selectedRow)}>
-                      Edit Record
-                    </button>
-                    <button type="button" className="secondary-button compact-action danger-button" onClick={() => deleteRecord(selectedRow)}>
-                      Delete Record
-                    </button>
+                    {canEdit && (
+                      <button type="button" className="primary-button compact-action" onClick={() => openEditForm(selectedRow)}>
+                        Edit Record
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button type="button" className="secondary-button compact-action danger-button" onClick={() => deleteRecord(selectedRow)}>
+                        Delete Record
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (

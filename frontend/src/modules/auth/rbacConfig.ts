@@ -107,8 +107,13 @@ export function getRolePermissions(role: string, roles: RoleDefinition[] = BASE_
   const fromCatalog = roles.find(
     (row) => normalizeRoleName(row.id) === r || normalizeRoleName(row.name) === r,
   );
-  if (fromCatalog?.permissions?.length) return [...fromCatalog.permissions];
 
+  // Custom role in catalog → ONLY its permissions (even if empty)
+  if (fromCatalog) {
+    return Array.isArray(fromCatalog.permissions) ? [...fromCatalog.permissions] : [];
+  }
+
+  // Unknown role: build from DEFAULT_PERMISSIONS_MAP
   return Object.entries(DEFAULT_PERMISSIONS_MAP)
     .filter(([, list]) => list.map(normalizeRoleName).includes(r))
     .map(([key]) => key);
@@ -121,8 +126,18 @@ export function hasPermission(
 ): boolean {
   const r = normalizeRoleName(role);
   if (r === 'admin') return true;
-  const perms = getRolePermissions(role, roles);
-  if (perms.includes('*') || perms.includes(permissionKey)) return true;
+
+  const fromCatalog = roles.find(
+    (row) => normalizeRoleName(row.id) === r || normalizeRoleName(row.name) === r,
+  );
+
+  // Role exists in catalog → ONLY listed permissions (no map fallback)
+  if (fromCatalog) {
+    const perms = Array.isArray(fromCatalog.permissions) ? fromCatalog.permissions : [];
+    return perms.includes('*') || perms.includes(permissionKey);
+  }
+
+  // Not in catalog → use map for seeded role names
   const mapRoles = DEFAULT_PERMISSIONS_MAP[permissionKey] || [];
   return mapRoles.map(normalizeRoleName).includes(r);
 }
