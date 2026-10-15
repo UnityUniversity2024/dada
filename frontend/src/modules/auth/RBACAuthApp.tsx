@@ -13,6 +13,7 @@ import {
 } from './rbacConfig';
 import ExportApp from '../export/ExportApp';
 import './rbac.css';
+
 const USERS_KEY = 'unity_export_users';
 const ROLES_KEY = 'unity_export_roles';
 const SESSION_KEY = 'unity_export_session';
@@ -40,7 +41,6 @@ const defaultRoleChoices = Object.keys(DEFAULT_PERMISSIONS_MAP);
 export default function RBACAuthApp(): JSX.Element {
   const [users, setUsers] = useState<UserRecord[]>(() => readJson<UserRecord[]>(USERS_KEY, DEFAULT_USERS));
   const [roles, setRoles] = useState<RoleDefinition[]>(() => readJson<RoleDefinition[]>(ROLES_KEY, BASE_ROLES));
-  // Always start on login
   const [session, setSession] = useState<UserRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'export' | 'settings'>('export');
   const [loginMode, setLoginMode] = useState<'login' | 'register'>('login');
@@ -54,7 +54,6 @@ export default function RBACAuthApp(): JSX.Element {
   });
   const [notice, setNotice] = useState('');
 
-  // Always open on login page (ignore any old saved session)
   useEffect(() => {
     try {
       window.localStorage.removeItem(SESSION_KEY);
@@ -339,7 +338,7 @@ export default function RBACAuthApp(): JSX.Element {
             onClick={() => {
               setSession(null);
               try {
-                window.localStorage.removeItem('unity_export_session');
+                window.localStorage.removeItem(SESSION_KEY);
               } catch (_) {}
             }}
           >
@@ -541,6 +540,13 @@ export default function RBACAuthApp(): JSX.Element {
             canAdd={hasPermission(session.role, 'CAN_ADD_RECORD', roles)}
             canEdit={hasPermission(session.role, 'CAN_EDIT_RECORD', roles)}
             canDelete={hasPermission(session.role, 'CAN_DELETE_RECORD', roles)}
+            canUploadData={hasPermission(session.role, 'UPLOAD_DATA', roles)}
+            canExportExcel={hasPermission(session.role, 'EXPORT_EXCEL', roles)}
+            canExportPdf={hasPermission(session.role, 'EXPORT_PDF', roles)}
+            canExportWord={hasPermission(session.role, 'EXPORT_WORD', roles)}
+            canExportCsv={hasPermission(session.role, 'EXPORT_CSV', roles)}
+            canViewCoffee={hasPermission(session.role, 'REPORT_COFFEE', roles)}
+            canViewSesame={hasPermission(session.role, 'REPORT_SESAME', roles)}
           />
           <div className="rbac-analytics-grid" style={{ marginTop: 18 }}>
             <div className="rbac-panel">
@@ -579,4 +585,3 @@ export default function RBACAuthApp(): JSX.Element {
     </div>
   );
 }
-

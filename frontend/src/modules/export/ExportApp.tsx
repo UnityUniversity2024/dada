@@ -285,6 +285,13 @@ type ExportAppProps = {
   canAdd?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  canUploadData?: boolean;
+  canExportExcel?: boolean;
+  canExportPdf?: boolean;
+  canExportWord?: boolean;
+  canExportCsv?: boolean;
+  canViewCoffee?: boolean;
+  canViewSesame?: boolean;
 };
 
 export default function ExportApp({
@@ -293,8 +300,17 @@ export default function ExportApp({
   canAdd = false,
   canEdit = false,
   canDelete = false,
+  canUploadData = false,
+  canExportExcel = false,
+  canExportPdf = false,
+  canExportWord = false,
+  canExportCsv = false,
+  canViewCoffee = true,
+  canViewSesame = true,
 }: ExportAppProps = {}): JSX.Element {
-  const [activeTab, setActiveTab] = useState<ExportTab>('coffee');
+  const canExportAny = canExportExcel || canExportPdf || canExportWord || canExportCsv;
+  const initialTab: ExportTab = canViewCoffee ? 'coffee' : canViewSesame ? 'sesame' : canViewContract ? 'contract-flow' : 'coffee';
+  const [activeTab, setActiveTab] = useState<ExportTab>(initialTab);
   const [rows, setRows] = useState<ExportRow[]>(dataMap.coffee);
   const [selectedRow, setSelectedRow] = useState<ExportRow | null>(dataMap.coffee[0] ?? null);
   const [apiState, setApiState] = useState<'local' | 'postgres'>('local');
@@ -321,6 +337,7 @@ export default function ExportApp({
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm());
   const [contractNotice, setContractNotice] = useState('');
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [dataUploadBusy, setDataUploadBusy] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<
     Array<{ id: string; tone: 'info' | 'success' | 'warn' | 'error'; text: string; at: string; read: boolean }>
@@ -548,6 +565,74 @@ export default function ExportApp({
       setContractNotice(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploadBusy(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleDataExcelUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    if (!canUploadData) {
+      setNotice('Your role cannot upload data files.');
+      event.target.value = '';
+      return;
+    }
+    if (activeTab === 'contract-flow') {
+      setNotice('Switch to Coffee or Sesame to import shipment data.');
+      event.target.value = '';
+      return;
+    }
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setDataUploadBusy(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+      const mapped: ExportRow[] = json.map((row, idx) => {
+        const g = (keys: string[]) => {
+          for (const k of keys) {
+            const hit = Object.keys(row).find(
+              (h) => h.toLowerCase().replace(/\s+/g, '') === k.toLowerCase().replace(/\s+/g, ''),
+            );
+            if (hit != null && row[hit] !== '') return row[hit];
+          }
+          return '';
+        };
+        const num = (v: unknown) => Number(String(v).replace(/[^0-9.-]/g, '')) || 0;
+        const payRaw = String(g(['paymentStatus', 'Payment Status', 'Status']) || 'Open');
+        const pay = (/paid/i.test(payRaw) ? 'Paid' : /partial/i.test(payRaw) ? 'Partial' : 'Open') as ExportRow['paymentStatus'];
+        return {
+          id: Date.now() + idx,
+          week: String(g(['week', 'Week']) || ''),
+          shipmentNo: String(g(['shipmentNo', 'Shipment No', 'Shipment']) || `IMP-${idx + 1}`),
+          buyer: String(g(['buyer', 'Buyer']) || ''),
+          destination: String(g(['destination', 'Destination']) || ''),
+          quantity: num(g(['quantity', 'Quantity', 'MT'])),
+          unit: String(g(['unit', 'Unit']) || 'MT'),
+          containers: num(g(['containers', 'Containers'])),
+          pricePerKg: num(g(['pricePerKg', 'Price'])),
+          grossUsd: num(g(['grossUsd', 'Gross USD', 'Value'])),
+          paidUsd: num(g(['paidUsd', 'Paid USD', 'Paid'])),
+          paymentStatus: pay,
+          cleaning: String(g(['cleaning', 'Cleaning', 'Grade']) || ''),
+          product: String(g(['product', 'Product']) || (activeTab === 'coffee' ? 'Green Coffee' : 'Sesame Seeds')),
+          vessel: String(g(['vessel', 'Vessel']) || ''),
+          contract: String(g(['contract', 'Contract']) || ''),
+          status: 'Pending' as ExportRow['status'],
+          date: String(g(['date', 'Date']) || new Date().toISOString().slice(0, 10)),
+          notes: String(g(['notes', 'Notes']) || `Imported from ${file.name}`),
+        };
+      });
+      if (!mapped.length) throw new Error('No rows found in the spreadsheet.');
+      setRows(mapped);
+      setSelectedRow(mapped[0] ?? null);
+      setNotice(`Imported ${mapped.length} row(s) into ${activeTab} from ${file.name}`);
+      pushNotify(`Data upload: ${mapped.length} ${activeTab} rows`, 'success');
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Excel import failed');
+      pushNotify('Data upload failed', 'error');
+    } finally {
+      setDataUploadBusy(false);
       event.target.value = '';
     }
   };
@@ -1518,6 +1603,17 @@ export default function ExportApp({
   };
 
   const runExport = (format: 'csv' | 'excel' | 'pdf' | 'word', scope: 'view' | 'full') => {
+    const allowed =
+      (format === 'excel' && canExportExcel) ||
+      (format === 'pdf' && canExportPdf) ||
+      (format === 'word' && canExportWord) ||
+      (format === 'csv' && canExportCsv);
+    if (!allowed) {
+      setNotice(`Your role cannot export as ${format.toUpperCase()}.`);
+      pushNotify(`Export ${format} denied`, 'warn');
+      setExportMenuOpen(false);
+      return;
+    }
     setExportMenuOpen(false);
     if (format === 'csv') {
       exportCsv(scope);
@@ -1659,20 +1755,24 @@ export default function ExportApp({
 
       <section className="tab-row">
         <div className="tab-switch">
-          <button
-            type="button"
-            className={activeTab === 'coffee' ? 'tab-button active' : 'tab-button'}
-            onClick={() => setActiveTab('coffee')}
-          >
-            Coffee
-          </button>
-          <button
-            type="button"
-            className={activeTab === 'sesame' ? 'tab-button active' : 'tab-button'}
-            onClick={() => setActiveTab('sesame')}
-          >
-            Sesame
-          </button>
+          {canViewCoffee && (
+            <button
+              type="button"
+              className={activeTab === 'coffee' ? 'tab-button active' : 'tab-button'}
+              onClick={() => setActiveTab('coffee')}
+            >
+              Coffee
+            </button>
+          )}
+          {canViewSesame && (
+            <button
+              type="button"
+              className={activeTab === 'sesame' ? 'tab-button active' : 'tab-button'}
+              onClick={() => setActiveTab('sesame')}
+            >
+              Sesame
+            </button>
+          )}
           {canViewContract && (
             <button
               type="button"
@@ -1685,11 +1785,18 @@ export default function ExportApp({
         </div>
 
         <div className="export-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {canUploadData && !contractFlowView && (
+            <label className="primary-button secondary-variant" style={{ cursor: dataUploadBusy ? 'wait' : 'pointer', margin: 0 }}>
+              {dataUploadBusy ? 'Uploading…' : '↑ Upload Excel'}
+              <input type="file" accept=".xlsx,.xls,.csv" hidden disabled={dataUploadBusy} onChange={handleDataExcelUpload} />
+            </label>
+          )}
           {!contractFlowView && canAdd && (
             <button type="button" className="primary-button" onClick={openCreateForm}>
               + Add Record
             </button>
           )}
+          {canExportAny && (
           <div style={{ position: 'relative' }}>
             <button
               type="button"
@@ -1744,6 +1851,7 @@ export default function ExportApp({
               </div>
             )}
           </div>
+          )}
         </div>
       </section>
 

@@ -131,7 +131,6 @@
   border: 1px solid rgba(140, 190, 230, 0.18);
 }
 
-/* Standard logout — red, compact */
 .rbac-logout-button {
   margin-top: 0 !important;
   padding: 6px 12px !important;
