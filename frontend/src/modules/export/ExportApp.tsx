@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { coffeeSeed, sesameSeed } from './mockExportData';
 
-type ExportTab = 'coffee' | 'sesame' | 'contract-flow';
+type ExportTab = 'coffee' | 'sesame' | 'contract-flow' | 'farm-to-store';
 
 type RolePermission = {
   role: string;
@@ -293,6 +293,1195 @@ type ExportAppProps = {
   canViewCoffee?: boolean;
   canViewSesame?: boolean;
 };
+
+
+/* ========== NSPF Farm → Store (inlined) ========== */
+/** NSPF Coffee & Sesame — Farm → Store pipeline mock data (Ethiopia / ETB + USD) */
+
+type Commodity = 'Sesame' | 'Coffee';
+
+type Supplier = {
+  id: string;
+  name: string;
+  commodity: Commodity;
+  origin: string;
+  woreda: string;
+  contact: string;
+  phone: string;
+  status: 'Active' | 'Under review' | 'Suspended';
+  performanceScore: number;
+  notes: string;
+};
+
+type SourcingPlan = {
+  id: string;
+  commodity: Commodity;
+  origin: string;
+  grade: string;
+  targetMt: number;
+  targetPriceEtbPerKg: number;
+  period: string;
+  requiredBy: string;
+  status: 'Open' | 'In progress' | 'Closed';
+};
+
+type PurchaseReceipt = {
+  id: string;
+  poNo: string;
+  supplierId: string;
+  supplierName: string;
+  commodity: Commodity;
+  origin: string;
+  grade: string;
+  receiptDate: string;
+  grossKg: number;
+  netKg: number;
+  bags: number;
+  moisturePct: number;
+  priceEtbPerKg: number;
+  deductionsEtb: number;
+  status: 'Received' | 'Inspected' | 'Rejected' | 'Settled';
+  warehouse: string;
+};
+
+type StockLot = {
+  id: string;
+  lotNo: string;
+  commodity: Commodity;
+  origin: string;
+  grade: string;
+  purchaseId: string;
+  warehouse: string;
+  bin: string;
+  netKg: number;
+  bags: number;
+  qualityStatus: 'Available' | 'Reserved' | 'Quarantine' | 'In process' | 'Dispatched' | 'Rejected';
+  receivedAt: string;
+  owner: string;
+};
+
+type ProcessingBatch = {
+  id: string;
+  batchNo: string;
+  commodity: Commodity;
+  inputLotIds: string[];
+  processType: string;
+  inputKg: number;
+  outputKg: number;
+  lossKg: number;
+  yieldPct: number;
+  outputGrade: string;
+  labResult: string;
+  releaseStatus: 'Hold' | 'Released' | 'Rejected';
+  processedAt: string;
+  warehouse: string;
+};
+
+const suppliersSeed: Supplier[] = [
+  { id: 'SUP-SES-01', name: 'Humera Farmers Cooperative', commodity: 'Sesame', origin: 'Humera', woreda: 'Kafta Humera', contact: 'Ato Girmay Haile', phone: '+251914100001', status: 'Active', performanceScore: 92, notes: 'Primary Humera white sesame source' },
+  { id: 'SUP-SES-02', name: 'Wollega Highlands Traders', commodity: 'Sesame', origin: 'Wollega', woreda: 'Gimbi', contact: 'W/ro Aster Bekele', phone: '+251911200002', status: 'Active', performanceScore: 88, notes: 'Wollega mixed grade' },
+  { id: 'SUP-SES-03', name: 'Metema Collection Center', commodity: 'Sesame', origin: 'Metema', woreda: 'Metema', contact: 'Ato Yusuf Mohammed', phone: '+251918300003', status: 'Under review', performanceScore: 76, notes: 'Seasonal supply' },
+  { id: 'SUP-COF-01', name: 'Sidamo Washing Station PLC', commodity: 'Coffee', origin: 'Sidamo', woreda: 'Bensa', contact: 'Ato Tadesse Alemu', phone: '+251911400004', status: 'Active', performanceScore: 95, notes: 'Washed Arabica grade 2' },
+  { id: 'SUP-COF-02', name: 'Yirgacheffe Smallholders Union', commodity: 'Coffee', origin: 'Yirgacheffe', woreda: 'Kochere', contact: 'W/ro Hanna Desta', phone: '+251912500005', status: 'Active', performanceScore: 91, notes: 'Specialty lots' },
+];
+
+const sourcingPlansSeed: SourcingPlan[] = [
+  { id: 'SP-2026-SES-01', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', targetMt: 500, targetPriceEtbPerKg: 118, period: '2026-Q3', requiredBy: '2026-09-30', status: 'In progress' },
+  { id: 'SP-2026-SES-02', commodity: 'Sesame', origin: 'Wollega', grade: 'Wollega Mixed', targetMt: 220, targetPriceEtbPerKg: 112, period: '2026-Q3', requiredBy: '2026-10-15', status: 'Open' },
+  { id: 'SP-2026-COF-01', commodity: 'Coffee', origin: 'Sidamo', grade: 'Grade 2 Washed', targetMt: 180, targetPriceEtbPerKg: 420, period: '2026-Q3', requiredBy: '2026-09-20', status: 'In progress' },
+];
+
+const purchasesSeed: PurchaseReceipt[] = [
+  { id: 'PR-SES-2401', poNo: 'PO-SES-2026-014', supplierId: 'SUP-SES-01', supplierName: 'Humera Farmers Cooperative', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', receiptDate: '2026-08-12', grossKg: 52000, netKg: 51200, bags: 1024, moisturePct: 6.2, priceEtbPerKg: 116, deductionsEtb: 18500, status: 'Inspected', warehouse: 'NSPF Main Store – Djibouti Road' },
+  { id: 'PR-SES-2402', poNo: 'PO-SES-2026-018', supplierId: 'SUP-SES-02', supplierName: 'Wollega Highlands Traders', commodity: 'Sesame', origin: 'Wollega', grade: 'Wollega Mixed', receiptDate: '2026-08-20', grossKg: 31000, netKg: 30400, bags: 608, moisturePct: 7.1, priceEtbPerKg: 110, deductionsEtb: 9200, status: 'Received', warehouse: 'NSPF Main Store – Djibouti Road' },
+  { id: 'PR-SES-2403', poNo: 'PO-SES-2026-021', supplierId: 'SUP-SES-01', supplierName: 'Humera Farmers Cooperative', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', receiptDate: '2026-09-02', grossKg: 48000, netKg: 47250, bags: 945, moisturePct: 6.0, priceEtbPerKg: 119, deductionsEtb: 12000, status: 'Settled', warehouse: 'Cleaning Plant In-Yard' },
+  { id: 'PR-COF-1101', poNo: 'PO-COF-2026-009', supplierId: 'SUP-COF-01', supplierName: 'Sidamo Washing Station PLC', commodity: 'Coffee', origin: 'Sidamo', grade: 'Grade 2 Washed', receiptDate: '2026-08-05', grossKg: 42000, netKg: 41200, bags: 687, moisturePct: 11.5, priceEtbPerKg: 415, deductionsEtb: 0, status: 'Inspected', warehouse: 'Coffee Green Store A' },
+];
+
+const lotsSeed: StockLot[] = [
+  { id: 'LOT-SES-2401-A', lotNo: 'LOT-SES-2401-A', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', purchaseId: 'PR-SES-2401', warehouse: 'NSPF Main Store – Djibouti Road', bin: 'S-A-12', netKg: 25600, bags: 512, qualityStatus: 'Available', receivedAt: '2026-08-12', owner: 'NSPF' },
+  { id: 'LOT-SES-2401-B', lotNo: 'LOT-SES-2401-B', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', purchaseId: 'PR-SES-2401', warehouse: 'Cleaning Plant In-Yard', bin: 'PROC-01', netKg: 25600, bags: 512, qualityStatus: 'In process', receivedAt: '2026-08-12', owner: 'NSPF' },
+  { id: 'LOT-SES-2402-A', lotNo: 'LOT-SES-2402-A', commodity: 'Sesame', origin: 'Wollega', grade: 'Wollega Mixed', purchaseId: 'PR-SES-2402', warehouse: 'NSPF Main Store – Djibouti Road', bin: 'S-B-03', netKg: 30400, bags: 608, qualityStatus: 'Quarantine', receivedAt: '2026-08-20', owner: 'NSPF' },
+  { id: 'LOT-SES-2403-A', lotNo: 'LOT-SES-2403-A', commodity: 'Sesame', origin: 'Humera', grade: 'Humera Whitish', purchaseId: 'PR-SES-2403', warehouse: 'Cleaning Plant In-Yard', bin: 'PROC-02', netKg: 47250, bags: 945, qualityStatus: 'Available', receivedAt: '2026-09-02', owner: 'NSPF' },
+  { id: 'LOT-COF-1101-A', lotNo: 'LOT-COF-1101-A', commodity: 'Coffee', origin: 'Sidamo', grade: 'Grade 2 Washed', purchaseId: 'PR-COF-1101', warehouse: 'Coffee Green Store A', bin: 'C-01', netKg: 41200, bags: 687, qualityStatus: 'Reserved', receivedAt: '2026-08-05', owner: 'NSPF' },
+];
+
+const processingSeed: ProcessingBatch[] = [
+  { id: 'BAT-SES-01', batchNo: 'BAT-SES-2026-01', commodity: 'Sesame', inputLotIds: ['LOT-SES-2401-B'], processType: 'Cleaning + grading', inputKg: 25600, outputKg: 24850, lossKg: 750, yieldPct: 97.1, outputGrade: 'Export cleaned Humera', labResult: 'Moisture 5.8% · Purity 99.2% · Pass', releaseStatus: 'Released', processedAt: '2026-08-18', warehouse: 'Export Ready Store' },
+  { id: 'BAT-SES-02', batchNo: 'BAT-SES-2026-02', commodity: 'Sesame', inputLotIds: ['LOT-SES-2403-A'], processType: 'Cleaning', inputKg: 20000, outputKg: 19420, lossKg: 580, yieldPct: 97.1, outputGrade: 'Export cleaned Humera', labResult: 'Pending lab', releaseStatus: 'Hold', processedAt: '2026-09-05', warehouse: 'Cleaning Plant In-Yard' },
+  { id: 'BAT-COF-01', batchNo: 'BAT-COF-2026-01', commodity: 'Coffee', inputLotIds: ['LOT-COF-1101-A'], processType: 'Dry milling + grading', inputKg: 15000, outputKg: 14280, lossKg: 720, yieldPct: 95.2, outputGrade: 'Sidamo G2 Export', labResult: 'Cupping 84 · Pass', releaseStatus: 'Released', processedAt: '2026-08-22', warehouse: 'Coffee Export Store' },
+];
+
+const pipelineStages = [
+  { id: 'plan', title: '1. Plan sourcing', desc: 'Demand, origin, grade, volume, target cost, required date' },
+  { id: 'supplier', title: '2. Suppliers / farm sources', desc: 'Register origin suppliers, cooperatives, washing stations' },
+  { id: 'purchase', title: '3. Purchase & receive', desc: 'PO, weighment, inspection, goods receipt from farm/collection' },
+  { id: 'lot', title: '4. Lot & warehouse stock', desc: 'Unique lots, bins, available/reserved/quarantine balances' },
+  { id: 'process', title: '5. Process & quality release', desc: 'Cleaning/milling, yield, lab, hold/release to export store' },
+  { id: 'ready', title: '6. Export-ready store', desc: 'Released stock available for contract allocation & shipment' },
+];
+
+
+/** Inline Farm→Store styles (no separate CSS file). */
+function FarmToStoreStyles(): JSX.Element {
+  return (
+    <style>{`
+/* ===== NSPF Farm → Store — robust light / white UI ===== */
+.farm-to-store {
+  position: relative;
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 18px 16px 36px;
+  border-radius: 20px;
+  overflow: hidden;
+  color: #0f2740;
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(16, 185, 129, 0.06), transparent 45%),
+    linear-gradient(180deg, #f8fbfd 0%, #eef4f9 45%, #f5f8fb 100%);
+  border: 1px solid rgba(15, 60, 90, 0.1);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 18px 48px rgba(15, 40, 70, 0.08);
+}
+.farm-to-store::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 80, 120, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 80, 120, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 20%, transparent 80%);
+  opacity: 0.7;
+}
+.farm-to-store > * { position: relative; z-index: 1; }
+
+.fts-hero {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f8fc 100%);
+  border: 1px solid rgba(15, 70, 110, 0.12);
+  box-shadow: 0 8px 28px rgba(15, 40, 70, 0.06);
+}
+.fts-hero h2 {
+  margin: 6px 0 8px;
+  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+  color: #0b2540;
+  letter-spacing: -0.02em;
+}
+.fts-sub { margin: 0; max-width: 740px; color: #4a657c; font-size: 13px; line-height: 1.55; }
+.farm-to-store .eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0284c7;
+}
+.fts-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.fts-filters label {
+  display: flex; flex-direction: column; gap: 4px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #3d6b8c; font-weight: 700;
+}
+.fts-filters select, .fts-filters input {
+  min-width: 160px; padding: 9px 12px; border-radius: 11px;
+  border: 1px solid rgba(15, 70, 110, 0.18);
+  background: #ffffff; color: #0f2740;
+  box-shadow: 0 1px 2px rgba(15, 40, 70, 0.04);
+}
+.fts-kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.fts-kpi {
+  border-radius: 14px; padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 70, 110, 0.1);
+  box-shadow: 0 6px 18px rgba(15, 40, 70, 0.05);
+}
+.fts-kpi span {
+  display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #5a7a94; margin-bottom: 4px; font-weight: 600;
+}
+.fts-kpi strong { font-size: 1.15rem; color: #0b2540; font-variant-numeric: tabular-nums; }
+.fts-stages {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px; margin-bottom: 16px;
+}
+.fts-stage {
+  text-align: left; border-radius: 12px; padding: 10px 12px; cursor: pointer;
+  border: 1px solid rgba(15, 70, 110, 0.1);
+  background: #ffffff; color: #1e3a50;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.fts-stage:hover {
+  border-color: rgba(2, 132, 199, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.08);
+}
+.fts-stage strong { display: block; font-size: 12px; margin-bottom: 2px; color: #0b2540; }
+.fts-stage.active {
+  border-color: rgba(2, 132, 199, 0.45);
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.15), 0 8px 20px rgba(2, 132, 199, 0.1);
+}
+.fts-panel {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 70, 110, 0.1);
+  background: #ffffff;
+  padding: 16px 16px 20px;
+  box-shadow: 0 12px 36px rgba(15, 40, 70, 0.06);
+}
+.fts-panel-head h3 { margin: 0 0 4px; color: #0b2540; font-size: 1.08rem; }
+.fts-panel-head p { margin: 0 0 12px; color: #5a7a94; font-size: 12.5px; }
+.farm-to-store .table-wrap {
+  overflow: auto; max-height: min(52vh, 520px); border-radius: 14px;
+  border: 1px solid rgba(15, 70, 110, 0.12);
+  background: #fbfcfe;
+}
+.farm-to-store table { width: max-content; min-width: 100%; border-collapse: collapse; }
+.farm-to-store th, .farm-to-store td {
+  padding: 9px 11px; font-size: 12px; text-align: left; white-space: nowrap;
+  border-bottom: 1px solid rgba(15, 70, 110, 0.08); color: #1a3348;
+}
+.farm-to-store th {
+  position: sticky; top: 0; z-index: 2;
+  background: linear-gradient(180deg, #0f3a56 0%, #144866 100%);
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #e8f4fc;
+}
+.farm-to-store tbody tr:nth-child(even) td { background: #f5f9fc; }
+.farm-to-store tbody tr:hover td { background: #e8f4fc; }
+.farm-to-store .pill {
+  display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  background: #e0f2fe; color: #0369a1;
+}
+.farm-to-store .pill.released, .farm-to-store .pill.available, .farm-to-store .pill.active,
+.farm-to-store .pill.settled, .farm-to-store .pill.inspected, .farm-to-store .pill.approved, .farm-to-store .pill.received
+{ background: #d1fae5; color: #047857; }
+.farm-to-store .pill.hold, .farm-to-store .pill.quarantine, .farm-to-store .pill.under-review,
+.farm-to-store .pill.open, .farm-to-store .pill.pending, .farm-to-store .pill.partial, .farm-to-store .pill.in-progress
+{ background: #fef3c7; color: #b45309; }
+.farm-to-store .pill.rejected, .farm-to-store .pill.suspended
+{ background: #fee2e2; color: #b91c1c; }
+.farm-to-store .mini-btn {
+  border: 1px solid rgba(2, 132, 199, 0.35); background: #f0f9ff;
+  color: #0369a1; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700;
+  cursor: pointer;
+}
+.farm-to-store .mini-btn:hover { background: #e0f2fe; border-color: #0284c7; }
+.fts-ready-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .fts-ready-grid { grid-template-columns: 1fr; } }
+.fts-list { list-style: none; margin: 0; padding: 0; }
+.fts-list li {
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 8px;
+  background: #f5f9fc; border: 1px solid rgba(15, 70, 110, 0.08);
+  display: flex; flex-direction: column; gap: 2px; color: #1a3348; font-size: 13px;
+}
+.fts-list li span { font-size: 11px; color: #5a7a94; }
+.fts-trace {
+  margin-top: 4px; padding: 14px 16px; border-radius: 14px;
+  border: 1px solid rgba(2, 132, 199, 0.18);
+  background: linear-gradient(145deg, #f0f9ff, #ffffff);
+}
+.fts-trace h4 { margin: 0 0 8px; color: #0369a1; }
+.fts-trace ol { margin: 0; padding-left: 18px; color: #1e3a50; font-size: 13px; line-height: 1.55; }
+.fts-modal-backdrop {
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(15, 30, 50, 0.35); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.fts-modal {
+  width: min(720px, 100%); max-height: 90vh; overflow: auto;
+  border-radius: 18px; padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 70, 110, 0.14);
+  box-shadow: 0 28px 70px rgba(15, 40, 70, 0.18);
+}
+.fts-modal h3 { margin: 0 0 12px; color: #0b2540; }
+.fts-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fts-field {
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px;
+  color: #3d6b8c; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+}
+.fts-field input, .fts-field textarea, .fts-field select {
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid rgba(15, 70, 110, 0.18);
+  background: #f8fbfd; color: #0f2740; font-size: 13px;
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+}
+.fts-field input:focus, .fts-field textarea:focus, .fts-field select:focus {
+  outline: none; border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  background: #ffffff;
+}
+.fts-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.fts-export-wrap { position: relative; }
+.fts-export-menu {
+  position: absolute; right: 0; top: 100%; margin-top: 6px; z-index: 50;
+  min-width: 220px; border-radius: 12px; padding: 6px;
+  background: #ffffff; border: 1px solid rgba(15, 70, 110, 0.14);
+  box-shadow: 0 16px 40px rgba(15, 40, 70, 0.12);
+}
+.fts-export-menu button {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  color: #0f2740; padding: 10px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+}
+.fts-export-menu button:hover { background: #e0f2fe; color: #0369a1; }
+@media (max-width: 640px) { .fts-form-grid { grid-template-columns: 1fr; } }
+`}</style>
+  );
+}
+
+
+type StageId = 'plan' | 'supplier' | 'purchase' | 'lot' | 'process' | 'ready';
+
+const etb = (n: number) =>
+  `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ETB`;
+const kg = (n: number) =>
+  `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} kg`;
+const mt = (n: number) =>
+  `${(Number(n || 0) / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} MT`;
+
+type Props = {
+  canEdit?: boolean;
+};
+
+
+function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Element {
+  type OpTab =
+    | 'plan' | 'supplier' | 'purchase' | 'lot' | 'process'
+    | 'allocate' | 'docs' | 'logistics' | 'proceeds' | 'nbe' | 'claims' | 'reports';
+
+  type Allocation = { id: string; contractNo: string; lotNo: string; commodity: Commodity; kg: number; status: string; date: string };
+  type DocRow = { id: string; shipmentNo: string; docType: string; status: string; issueDate: string; owner: string; notes: string };
+  type LogisticsRow = { id: string; shipmentNo: string; contractNo: string; vessel: string; container: string; seal: string; etd: string; eta: string; status: string; dryPort: string };
+  type ProceedRow = { id: string; invoiceNo: string; contractNo: string; amountUsd: number; receivedUsd: number; method: string; dueDate: string; status: string };
+  type NbeRow = { id: string; ref: string; contractNo: string; deadline: string; action: string; owner: string; evidence: string; status: string };
+  type ClaimRow = { id: string; type: string; ref: string; severity: string; owner: string; dueDate: string; impactUsd: number; status: string };
+
+  const [opTab, setOpTab] = useState<OpTab>('supplier');
+  const [commodity, setCommodity] = useState<'All' | Commodity>('Sesame');
+  const [q, setQ] = useState('');
+  const [exportOpen, setExportOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() => [...suppliersSeed]);
+  const [plans, setPlans] = useState<SourcingPlan[]>(() => [...sourcingPlansSeed]);
+  const [purchases, setPurchases] = useState<PurchaseReceipt[]>(() => [...purchasesSeed]);
+  const [lots, setLots] = useState<StockLot[]>(() => [...lotsSeed]);
+  const [batches, setBatches] = useState<ProcessingBatch[]>(() => [...processingSeed]);
+  const [allocations, setAllocations] = useState<Allocation[]>([
+    { id: 'AL-01', contractNo: 'CTR-SES-2026-08', lotNo: 'LOT-SES-2401-A', commodity: 'Sesame', kg: 12000, status: 'Reserved', date: '2026-09-10' },
+    { id: 'AL-02', contractNo: 'CTR-SID-2026-08', lotNo: 'LOT-COF-1101-A', commodity: 'Coffee', kg: 15000, status: 'Reserved', date: '2026-08-25' },
+  ]);
+  const [docs, setDocs] = useState<DocRow[]>([
+    { id: 'DOC-01', shipmentNo: 'SESAME/572/07/2026', docType: 'Commercial Invoice', status: 'Approved', issueDate: '2026-07-20', owner: 'Documentation', notes: 'Matches packing list' },
+    { id: 'DOC-02', shipmentNo: 'SESAME/572/07/2026', docType: 'Packing List', status: 'Approved', issueDate: '2026-07-20', owner: 'Documentation', notes: '' },
+    { id: 'DOC-03', shipmentNo: 'SESAME/572/07/2026', docType: 'Certificate of Origin', status: 'Pending', issueDate: '', owner: 'Documentation', notes: 'ECTA pending' },
+    { id: 'DOC-04', shipmentNo: 'COF-26-088', docType: 'Phytosanitary', status: 'Submitted', issueDate: '2026-08-12', owner: 'Documentation', notes: '' },
+    { id: 'DOC-05', shipmentNo: 'SESAME/574/08/2026', docType: 'Bill of Lading draft', status: 'Review', issueDate: '2026-08-18', owner: 'Logistics', notes: 'Seal check' },
+  ]);
+  const [logistics, setLogistics] = useState<LogisticsRow[]>([
+    { id: 'LG-01', shipmentNo: 'SESAME/572/07/2026', contractNo: 'CTR-SES-2026-07', vessel: 'CMA CGM', container: 'CMAU1234567', seal: 'SL-9921', etd: '2026-07-28', eta: '2026-08-22', status: 'On vessel', dryPort: 'Modjo' },
+    { id: 'LG-02', shipmentNo: 'SESAME/574/08/2026', contractNo: 'CTR-SES-2026-08', vessel: 'NOT GIVEN', container: 'TBD', seal: '—', etd: '2026-08-30', eta: '2026-09-25', status: 'Booking', dryPort: 'Modjo' },
+    { id: 'LG-03', shipmentNo: 'COF-26-088', contractNo: 'CTR-SID-2026-08', vessel: 'MSC', container: 'MSCU7654321', seal: 'SL-4410', etd: '2026-08-20', eta: '2026-09-10', status: 'At port', dryPort: 'Modjo' },
+  ]);
+  const [proceeds, setProceeds] = useState<ProceedRow[]>([
+    { id: 'PRC-01', invoiceNo: 'INV-SES-572', contractNo: 'CTR-SES-2026-07', amountUsd: 235600, receivedUsd: 0, method: 'LC', dueDate: '2026-08-15', status: 'Open' },
+    { id: 'PRC-02', invoiceNo: 'INV-COF-088', contractNo: 'CTR-SID-2026-08', amountUsd: 330000, receivedUsd: 125000, method: 'LC', dueDate: '2026-08-30', status: 'Partial' },
+    { id: 'PRC-03', invoiceNo: 'INV-SES-581', contractNo: 'CTR-SES-2026-08', amountUsd: 171000, receivedUsd: 171000, method: 'TT', dueDate: '2026-09-01', status: 'Received' },
+  ]);
+  const [nbeRows, setNbeRows] = useState<NbeRow[]>([
+    { id: 'NBE-01', ref: 'NBE-SES-572', contractNo: 'CTR-SES-2026-07', deadline: '2026-09-30', action: 'Repatriation evidence', owner: 'Finance/Treasury', evidence: 'Pending bank advice', status: 'Open' },
+    { id: 'NBE-02', ref: 'NBE-COF-088', contractNo: 'CTR-SID-2026-08', deadline: '2026-10-15', action: 'Settlement checklist', owner: 'Finance/Treasury', evidence: 'Partial LC draw filed', status: 'In progress' },
+  ]);
+  const [claims, setClaims] = useState<ClaimRow[]>([
+    { id: 'CL-01', type: 'Quality', ref: 'SESAME/572/07/2026', severity: 'Medium', owner: 'Export Manager', dueDate: '2026-09-05', impactUsd: 2500, status: 'Open' },
+    { id: 'CL-02', type: 'Document / LC', ref: 'INV-COF-088', severity: 'High', owner: 'Documentation', dueDate: '2026-08-28', impactUsd: 0, status: 'In progress' },
+  ]);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('Add record');
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [formFields, setFormFields] = useState<{ key: string; label: string; type?: string }[]>([]);
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const matchCommodity = <T extends { commodity?: Commodity }>(rows: T[]) =>
+    rows.filter((r) => commodity === 'All' || !r.commodity || r.commodity === commodity);
+  const matchQ = (text: string) => {
+    const s = q.trim().toLowerCase();
+    return !s || text.toLowerCase().includes(s);
+  };
+
+  const schemas: Record<string, { key: string; label: string; type?: string }[]> = {
+    plan: [
+      { key: 'id', label: 'Plan ID' }, { key: 'commodity', label: 'Commodity' }, { key: 'origin', label: 'Origin' },
+      { key: 'grade', label: 'Grade' }, { key: 'targetMt', label: 'Target MT', type: 'number' },
+      { key: 'targetPriceEtbPerKg', label: 'Target ETB/kg', type: 'number' }, { key: 'period', label: 'Period' },
+      { key: 'requiredBy', label: 'Required by', type: 'date' }, { key: 'status', label: 'Status' },
+    ],
+    supplier: [
+      { key: 'id', label: 'Supplier ID' }, { key: 'name', label: 'Name' }, { key: 'commodity', label: 'Commodity' },
+      { key: 'origin', label: 'Origin' }, { key: 'woreda', label: 'Woreda' }, { key: 'contact', label: 'Contact' },
+      { key: 'phone', label: 'Phone' }, { key: 'status', label: 'Status' },
+      { key: 'performanceScore', label: 'Performance score', type: 'number' }, { key: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+    purchase: [
+      { key: 'id', label: 'Receipt ID' }, { key: 'poNo', label: 'PO No' }, { key: 'supplierId', label: 'Supplier ID' },
+      { key: 'supplierName', label: 'Supplier name' }, { key: 'commodity', label: 'Commodity' },
+      { key: 'origin', label: 'Origin' }, { key: 'grade', label: 'Grade' },
+      { key: 'receiptDate', label: 'Receipt date', type: 'date' },
+      { key: 'grossKg', label: 'Gross kg', type: 'number' }, { key: 'netKg', label: 'Net kg', type: 'number' },
+      { key: 'bags', label: 'Bags', type: 'number' }, { key: 'moisturePct', label: 'Moisture %', type: 'number' },
+      { key: 'priceEtbPerKg', label: 'Price ETB/kg', type: 'number' },
+      { key: 'deductionsEtb', label: 'Deductions ETB', type: 'number' },
+      { key: 'status', label: 'Status' }, { key: 'warehouse', label: 'Warehouse' },
+    ],
+    lot: [
+      { key: 'id', label: 'ID' }, { key: 'lotNo', label: 'Lot No' }, { key: 'commodity', label: 'Commodity' },
+      { key: 'origin', label: 'Origin' }, { key: 'grade', label: 'Grade' }, { key: 'purchaseId', label: 'Purchase ID' },
+      { key: 'warehouse', label: 'Warehouse' }, { key: 'bin', label: 'Bin' },
+      { key: 'netKg', label: 'Net kg', type: 'number' }, { key: 'bags', label: 'Bags', type: 'number' },
+      { key: 'qualityStatus', label: 'Quality status' }, { key: 'receivedAt', label: 'Received at', type: 'date' },
+      { key: 'owner', label: 'Owner' },
+    ],
+    process: [
+      { key: 'id', label: 'ID' }, { key: 'batchNo', label: 'Batch No' }, { key: 'commodity', label: 'Commodity' },
+      { key: 'inputLotIds', label: 'Input lot IDs (comma)' }, { key: 'processType', label: 'Process type' },
+      { key: 'inputKg', label: 'Input kg', type: 'number' }, { key: 'outputKg', label: 'Output kg', type: 'number' },
+      { key: 'lossKg', label: 'Loss kg', type: 'number' }, { key: 'yieldPct', label: 'Yield %', type: 'number' },
+      { key: 'outputGrade', label: 'Output grade' }, { key: 'labResult', label: 'Lab result', type: 'textarea' },
+      { key: 'releaseStatus', label: 'Release status' }, { key: 'processedAt', label: 'Processed at', type: 'date' },
+      { key: 'warehouse', label: 'Warehouse' },
+    ],
+    allocate: [
+      { key: 'id', label: 'ID' }, { key: 'contractNo', label: 'Contract No' }, { key: 'lotNo', label: 'Lot No' },
+      { key: 'commodity', label: 'Commodity' }, { key: 'kg', label: 'Kg', type: 'number' },
+      { key: 'status', label: 'Status' }, { key: 'date', label: 'Date', type: 'date' },
+    ],
+    docs: [
+      { key: 'id', label: 'ID' }, { key: 'shipmentNo', label: 'Shipment No' }, { key: 'docType', label: 'Document type' },
+      { key: 'status', label: 'Status' }, { key: 'issueDate', label: 'Issue date', type: 'date' },
+      { key: 'owner', label: 'Owner' }, { key: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+    logistics: [
+      { key: 'id', label: 'ID' }, { key: 'shipmentNo', label: 'Shipment No' }, { key: 'contractNo', label: 'Contract No' },
+      { key: 'vessel', label: 'Vessel' }, { key: 'container', label: 'Container' }, { key: 'seal', label: 'Seal' },
+      { key: 'etd', label: 'ETD', type: 'date' }, { key: 'eta', label: 'ETA', type: 'date' },
+      { key: 'status', label: 'Status' }, { key: 'dryPort', label: 'Dry port' },
+    ],
+    proceeds: [
+      { key: 'id', label: 'ID' }, { key: 'invoiceNo', label: 'Invoice No' }, { key: 'contractNo', label: 'Contract No' },
+      { key: 'amountUsd', label: 'Amount USD', type: 'number' }, { key: 'receivedUsd', label: 'Received USD', type: 'number' },
+      { key: 'method', label: 'Method (LC/TT)' }, { key: 'dueDate', label: 'Due date', type: 'date' },
+      { key: 'status', label: 'Status' },
+    ],
+    nbe: [
+      { key: 'id', label: 'ID' }, { key: 'ref', label: 'NBE Ref' }, { key: 'contractNo', label: 'Contract No' },
+      { key: 'deadline', label: 'Deadline', type: 'date' }, { key: 'action', label: 'Required action' },
+      { key: 'owner', label: 'Owner' }, { key: 'evidence', label: 'Evidence', type: 'textarea' },
+      { key: 'status', label: 'Status' },
+    ],
+    claims: [
+      { key: 'id', label: 'ID' }, { key: 'type', label: 'Type' }, { key: 'ref', label: 'Reference' },
+      { key: 'severity', label: 'Severity' }, { key: 'owner', label: 'Owner' },
+      { key: 'dueDate', label: 'Due date', type: 'date' }, { key: 'impactUsd', label: 'Impact USD', type: 'number' },
+      { key: 'status', label: 'Status' },
+    ],
+  };
+
+  const rowToForm = (row: Record<string, unknown>) => {
+    const o: Record<string, string> = {};
+    Object.keys(row).forEach((k) => {
+      const v = row[k];
+      if (Array.isArray(v)) o[k] = v.join(', ');
+      else o[k] = v == null ? '' : String(v);
+    });
+    return o;
+  };
+
+  const openAdd = (tab: OpTab) => {
+    if (!canEdit || tab === 'reports') return;
+    const fields = schemas[tab] || [];
+    setFormFields(fields);
+    const defaults: Record<string, string> = {};
+    fields.forEach((f) => { defaults[f.key] = ''; });
+    if ('commodity' in defaults) defaults.commodity = commodity === 'All' ? 'Sesame' : commodity;
+    if ('status' in defaults) defaults.status = tab === 'process' ? 'Hold' : tab === 'lot' ? 'Available' : 'Open';
+    if ('receiptDate' in defaults || 'date' in defaults || 'receivedAt' in defaults || 'processedAt' in defaults) {
+      const d = new Date().toISOString().slice(0, 10);
+      if ('receiptDate' in defaults) defaults.receiptDate = d;
+      if ('date' in defaults) defaults.date = d;
+      if ('receivedAt' in defaults) defaults.receivedAt = d;
+      if ('processedAt' in defaults) defaults.processedAt = d;
+    }
+    setModalTitle(`Add · ${tab}`);
+    setEditId(null);
+    setForm(defaults);
+    setModalOpen(true);
+  };
+
+  const openEdit = (tab: OpTab, id: string, row: Record<string, unknown>) => {
+    if (!canEdit) return;
+    setFormFields(schemas[tab] || []);
+    setModalTitle(`Edit · ${tab}`);
+    setEditId(id);
+    setForm(rowToForm(row));
+    setModalOpen(true);
+  };
+
+  const num = (k: string, fallback = 0) => {
+    const n = Number(form[k]);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const saveModal = () => {
+    if (!canEdit) return;
+    const tab = opTab;
+    const idGen = () => `${tab.slice(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+    if (tab === 'plan') {
+      const row: SourcingPlan = {
+        id: form.id || editId || idGen(), commodity: (form.commodity as Commodity) || 'Sesame',
+        origin: form.origin || '', grade: form.grade || '', targetMt: num('targetMt'),
+        targetPriceEtbPerKg: num('targetPriceEtbPerKg'), period: form.period || '',
+        requiredBy: form.requiredBy || '', status: (form.status as SourcingPlan['status']) || 'Open',
+      };
+      setPlans((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'supplier') {
+      const row: Supplier = {
+        id: form.id || editId || idGen(), name: form.name || '', commodity: (form.commodity as Commodity) || 'Sesame',
+        origin: form.origin || '', woreda: form.woreda || '', contact: form.contact || '', phone: form.phone || '',
+        status: (form.status as Supplier['status']) || 'Active', performanceScore: num('performanceScore', 80),
+        notes: form.notes || '',
+      };
+      setSuppliers((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'purchase') {
+      const row: PurchaseReceipt = {
+        id: form.id || editId || idGen(), poNo: form.poNo || '', supplierId: form.supplierId || '',
+        supplierName: form.supplierName || '', commodity: (form.commodity as Commodity) || 'Sesame',
+        origin: form.origin || '', grade: form.grade || '', receiptDate: form.receiptDate || '',
+        grossKg: num('grossKg', num('netKg')), netKg: num('netKg'), bags: num('bags'),
+        moisturePct: num('moisturePct'), priceEtbPerKg: num('priceEtbPerKg'), deductionsEtb: num('deductionsEtb'),
+        status: (form.status as PurchaseReceipt['status']) || 'Received', warehouse: form.warehouse || '',
+      };
+      setPurchases((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'lot') {
+      const row: StockLot = {
+        id: form.id || editId || idGen(), lotNo: form.lotNo || form.id || idGen(),
+        commodity: (form.commodity as Commodity) || 'Sesame', origin: form.origin || '', grade: form.grade || '',
+        purchaseId: form.purchaseId || '', warehouse: form.warehouse || '', bin: form.bin || '',
+        netKg: num('netKg'), bags: num('bags'),
+        qualityStatus: (form.qualityStatus as StockLot['qualityStatus']) || 'Available',
+        receivedAt: form.receivedAt || '', owner: form.owner || 'NSPF',
+      };
+      setLots((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'process') {
+      const row: ProcessingBatch = {
+        id: form.id || editId || idGen(), batchNo: form.batchNo || idGen(),
+        commodity: (form.commodity as Commodity) || 'Sesame',
+        inputLotIds: (form.inputLotIds || '').split(',').map((s) => s.trim()).filter(Boolean),
+        processType: form.processType || '', inputKg: num('inputKg'), outputKg: num('outputKg'),
+        lossKg: num('lossKg'), yieldPct: num('yieldPct'), outputGrade: form.outputGrade || '',
+        labResult: form.labResult || '', releaseStatus: (form.releaseStatus as ProcessingBatch['releaseStatus']) || 'Hold',
+        processedAt: form.processedAt || '', warehouse: form.warehouse || '',
+      };
+      setBatches((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'allocate') {
+      const row: Allocation = {
+        id: form.id || editId || idGen(), contractNo: form.contractNo || '', lotNo: form.lotNo || '',
+        commodity: (form.commodity as Commodity) || 'Sesame', kg: num('kg'), status: form.status || 'Reserved',
+        date: form.date || new Date().toISOString().slice(0, 10),
+      };
+      setAllocations((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'docs') {
+      const row: DocRow = {
+        id: form.id || editId || idGen(), shipmentNo: form.shipmentNo || '', docType: form.docType || '',
+        status: form.status || 'Pending', issueDate: form.issueDate || '', owner: form.owner || '', notes: form.notes || '',
+      };
+      setDocs((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'logistics') {
+      const row: LogisticsRow = {
+        id: form.id || editId || idGen(), shipmentNo: form.shipmentNo || '', contractNo: form.contractNo || '',
+        vessel: form.vessel || '', container: form.container || '', seal: form.seal || '',
+        etd: form.etd || '', eta: form.eta || '', status: form.status || 'Booking', dryPort: form.dryPort || '',
+      };
+      setLogistics((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'proceeds') {
+      const row: ProceedRow = {
+        id: form.id || editId || idGen(), invoiceNo: form.invoiceNo || '', contractNo: form.contractNo || '',
+        amountUsd: num('amountUsd'), receivedUsd: num('receivedUsd'), method: form.method || 'LC',
+        dueDate: form.dueDate || '', status: form.status || 'Open',
+      };
+      setProceeds((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'nbe') {
+      const row: NbeRow = {
+        id: form.id || editId || idGen(), ref: form.ref || '', contractNo: form.contractNo || '',
+        deadline: form.deadline || '', action: form.action || '', owner: form.owner || '',
+        evidence: form.evidence || '', status: form.status || 'Open',
+      };
+      setNbeRows((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    } else if (tab === 'claims') {
+      const row: ClaimRow = {
+        id: form.id || editId || idGen(), type: form.type || '', ref: form.ref || '',
+        severity: form.severity || 'Medium', owner: form.owner || '', dueDate: form.dueDate || '',
+        impactUsd: num('impactUsd'), status: form.status || 'Open',
+      };
+      setClaims((prev) => editId ? prev.map((r) => r.id === editId ? row : r) : [...prev, row]);
+    }
+    setModalOpen(false);
+  };
+
+  const removeRow = (tab: OpTab, id: string) => {
+    if (!canEdit) return;
+    if (!window.confirm('Delete this record?')) return;
+    const map: Record<string, (cb: (p: any[]) => any[]) => void> = {
+      plan: setPlans as any, supplier: setSuppliers as any, purchase: setPurchases as any,
+      lot: setLots as any, process: setBatches as any, allocate: setAllocations as any,
+      docs: setDocs as any, logistics: setLogistics as any, proceeds: setProceeds as any,
+      nbe: setNbeRows as any, claims: setClaims as any,
+    };
+    map[tab]?.((p) => p.filter((r) => r.id !== id));
+  };
+
+  const currentDataset = (): { title: string; headers: string[]; rows: (string | number)[][] } => {
+    if (opTab === 'plan') {
+      const rows = matchCommodity(plans).filter((s) => matchQ([s.id, s.origin, s.grade].join(' ')));
+      return { title: 'Sourcing Plans', headers: ['Plan ID', 'Commodity', 'Origin', 'Grade', 'Target MT', 'Target ETB/kg', 'Period', 'Required by', 'Status'], rows: rows.map((r) => [r.id, r.commodity, r.origin, r.grade, r.targetMt, r.targetPriceEtbPerKg, r.period, r.requiredBy, r.status]) };
+    }
+    if (opTab === 'supplier') {
+      const rows = matchCommodity(suppliers).filter((s) => matchQ([s.name, s.origin, s.id].join(' ')));
+      return { title: 'Suppliers / Farms', headers: ['ID', 'Name', 'Commodity', 'Origin', 'Woreda', 'Contact', 'Phone', 'Score', 'Status', 'Notes'], rows: rows.map((r) => [r.id, r.name, r.commodity, r.origin, r.woreda, r.contact, r.phone, r.performanceScore, r.status, r.notes]) };
+    }
+    if (opTab === 'purchase') {
+      const rows = matchCommodity(purchases).filter((s) => matchQ([s.poNo, s.supplierName].join(' ')));
+      return { title: 'Purchase Receipts', headers: ['Receipt', 'PO', 'Supplier ID', 'Supplier', 'Commodity', 'Origin', 'Grade', 'Date', 'Gross kg', 'Net kg', 'Bags', 'Moisture %', 'Price ETB/kg', 'Deductions', 'Status', 'Warehouse'], rows: rows.map((r) => [r.id, r.poNo, r.supplierId, r.supplierName, r.commodity, r.origin, r.grade, r.receiptDate, r.grossKg, r.netKg, r.bags, r.moisturePct, r.priceEtbPerKg, r.deductionsEtb, r.status, r.warehouse]) };
+    }
+    if (opTab === 'lot') {
+      const rows = matchCommodity(lots).filter((s) => matchQ([s.lotNo, s.warehouse].join(' ')));
+      return { title: 'Warehouse Lots', headers: ['ID', 'Lot No', 'Commodity', 'Origin', 'Grade', 'Purchase', 'Warehouse', 'Bin', 'Net kg', 'Bags', 'Status', 'Received', 'Owner'], rows: rows.map((r) => [r.id, r.lotNo, r.commodity, r.origin, r.grade, r.purchaseId, r.warehouse, r.bin, r.netKg, r.bags, r.qualityStatus, r.receivedAt, r.owner]) };
+    }
+    if (opTab === 'process') {
+      const rows = matchCommodity(batches).filter((s) => matchQ([s.batchNo, s.processType].join(' ')));
+      return { title: 'Processing Batches', headers: ['ID', 'Batch', 'Commodity', 'Process', 'Input lots', 'Input kg', 'Output kg', 'Loss kg', 'Yield %', 'Output grade', 'Lab', 'Release', 'Date', 'Warehouse'], rows: rows.map((r) => [r.id, r.batchNo, r.commodity, r.processType, r.inputLotIds.join('; '), r.inputKg, r.outputKg, r.lossKg, r.yieldPct, r.outputGrade, r.labResult, r.releaseStatus, r.processedAt, r.warehouse]) };
+    }
+    if (opTab === 'allocate') {
+      const rows = matchCommodity(allocations).filter((s) => matchQ([s.contractNo, s.lotNo].join(' ')));
+      return { title: 'Stock Allocations', headers: ['ID', 'Contract', 'Lot', 'Commodity', 'Kg', 'Status', 'Date'], rows: rows.map((r) => [r.id, r.contractNo, r.lotNo, r.commodity, r.kg, r.status, r.date]) };
+    }
+    if (opTab === 'docs') {
+      const rows = docs.filter((s) => matchQ([s.shipmentNo, s.docType].join(' ')));
+      return { title: 'Export Documents', headers: ['ID', 'Shipment', 'Document type', 'Status', 'Issue date', 'Owner', 'Notes'], rows: rows.map((r) => [r.id, r.shipmentNo, r.docType, r.status, r.issueDate, r.owner, r.notes]) };
+    }
+    if (opTab === 'logistics') {
+      const rows = logistics.filter((s) => matchQ([s.shipmentNo, s.vessel].join(' ')));
+      return { title: 'Logistics & Shipment', headers: ['ID', 'Shipment', 'Contract', 'Vessel', 'Container', 'Seal', 'ETD', 'ETA', 'Dry port', 'Status'], rows: rows.map((r) => [r.id, r.shipmentNo, r.contractNo, r.vessel, r.container, r.seal, r.etd, r.eta, r.dryPort, r.status]) };
+    }
+    if (opTab === 'proceeds') {
+      const rows = proceeds.filter((s) => matchQ([s.invoiceNo, s.contractNo].join(' ')));
+      return { title: 'Export Proceeds', headers: ['ID', 'Invoice', 'Contract', 'Amount USD', 'Received USD', 'Outstanding', 'Method', 'Due', 'Status'], rows: rows.map((r) => [r.id, r.invoiceNo, r.contractNo, r.amountUsd, r.receivedUsd, r.amountUsd - r.receivedUsd, r.method, r.dueDate, r.status]) };
+    }
+    if (opTab === 'nbe') {
+      const rows = nbeRows.filter((s) => matchQ([s.ref, s.contractNo].join(' ')));
+      return { title: 'NBE Compliance', headers: ['ID', 'Ref', 'Contract', 'Deadline', 'Action', 'Owner', 'Evidence', 'Status'], rows: rows.map((r) => [r.id, r.ref, r.contractNo, r.deadline, r.action, r.owner, r.evidence, r.status]) };
+    }
+    if (opTab === 'claims') {
+      const rows = claims.filter((s) => matchQ([s.type, s.ref].join(' ')));
+      return { title: 'Claims & Exceptions', headers: ['ID', 'Type', 'Ref', 'Severity', 'Owner', 'Due', 'Impact USD', 'Status'], rows: rows.map((r) => [r.id, r.type, r.ref, r.severity, r.owner, r.dueDate, r.impactUsd, r.status]) };
+    }
+    // reports pack summary
+    return {
+      title: 'Operations Summary',
+      headers: ['Metric', 'Value'],
+      rows: [
+        ['Suppliers', suppliers.length], ['Open plans', plans.filter((p) => p.status !== 'Closed').length],
+        ['Purchases', purchases.length], ['Lots', lots.length], ['Batches', batches.length],
+        ['Allocations', allocations.length], ['Documents', docs.length], ['Logistics', logistics.length],
+        ['Proceeds open USD', proceeds.reduce((s, r) => s + (r.amountUsd - r.receivedUsd), 0)],
+        ['NBE open', nbeRows.filter((r) => r.status !== 'Closed').length],
+        ['Claims open', claims.filter((r) => r.status !== 'Closed').length],
+      ],
+    };
+  };
+
+  const org = 'Nefas Silk Paints Factory PLC';
+  const stamp = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  const runTableExport = async (format: 'csv' | 'excel' | 'pdf' | 'word') => {
+    const { title, headers, rows } = currentDataset();
+    const gen = stamp();
+    const fileBase = `NSPF_${title.replace(/[^\w]+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+    const colCount = Math.max(headers.length, 1);
+    const filterNote = `Commodity filter: ${commodity}  ·  Module: Farm → Store operations`;
+
+    if (format === 'csv') {
+      const lines = [
+        [org],
+        [title + ' (Official Record)'],
+        [filterNote],
+        [`Generated: ${gen}`],
+        [],
+        headers,
+        ...rows.map((r) => r.map(String)),
+        [],
+        ['Confidential — internal use only · ' + org],
+      ];
+      const csv = lines.map((line) => line.map((c) => {
+        const s = String(c ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${fileBase}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    if (format === 'excel') {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = org;
+      wb.created = new Date();
+      const ws = wb.addWorksheet('Report', {
+        pageSetup: {
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+          paperSize: 9,
+          margins: { left: 0.55, right: 0.55, top: 0.6, bottom: 0.6, header: 0.25, footer: 0.25 },
+          printTitlesRow: '5:5',
+        },
+        views: [{ state: 'frozen', ySplit: 5, activeCell: 'B6', showGridLines: false }],
+      });
+      ws.headerFooter = {
+        oddHeader: `&L${org}&C${title}&R${gen}`,
+        oddFooter: `&LConfidential — internal use only&CPage &P of &N&R${org}`,
+      };
+
+      // Column A left margin gutter
+      ws.getColumn(1).width = 3;
+      headers.forEach((_, i) => {
+        ws.getColumn(i + 2).width = Math.min(30, Math.max(12, String(headers[i]).length + 3));
+      });
+      ws.getColumn(colCount + 2).width = 3;
+
+      const lastDataCol = colCount + 1; // 1-based with gutter
+      const mergeBand = (row: number, value: string, fill: string, font: Partial<ExcelJS.Font>, height: number) => {
+        ws.mergeCells(row, 2, row, lastDataCol);
+        const cell = ws.getCell(row, 2);
+        cell.value = value;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        cell.font = font;
+        cell.alignment = { vertical: 'middle', horizontal: row === 2 ? 'center' : 'left' };
+        ws.getRow(row).height = height;
+        for (let c = 2; c <= lastDataCol; c++) {
+          ws.getCell(row, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        }
+      };
+
+      mergeBand(1, org, 'FF0F2837', { bold: true, color: { argb: 'FF7AD9FF' }, size: 10, name: 'Calibri' }, 18);
+      mergeBand(2, `${title.toUpperCase()} (Official Record)`, 'FF0F2837', { bold: true, color: { argb: 'FFFFFFFF' }, size: 16, name: 'Calibri' }, 28);
+      mergeBand(3, `${filterNote}`, 'FF1A3A4D', { color: { argb: 'FFB8D4E8' }, size: 9, name: 'Calibri' }, 18);
+      mergeBand(4, `Generated: ${gen}  ·  Rows: ${rows.length}`, 'FF1A3A4D', { color: { argb: 'FF9EC8E0' }, size: 9, name: 'Calibri', italic: true }, 16);
+
+      const headerRow = ws.getRow(5);
+      headerRow.height = 22;
+      headers.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 2);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF173E5F' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFB0C4D4' } },
+          left: { style: 'thin', color: { argb: 'FFB0C4D4' } },
+          bottom: { style: 'thin', color: { argb: 'FFB0C4D4' } },
+          right: { style: 'thin', color: { argb: 'FFB0C4D4' } },
+        };
+      });
+
+      rows.forEach((r, ri) => {
+        const row = ws.getRow(6 + ri);
+        r.forEach((val, ci) => {
+          const cell = row.getCell(ci + 2);
+          cell.value = val as ExcelJS.CellValue;
+          cell.font = { size: 10, name: 'Calibri', color: { argb: 'FF102030' } };
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: ri % 2 === 0 ? 'FFFFFFFF' : 'FFF0F7FC' },
+          };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD0DDE8' } },
+            left: { style: 'thin', color: { argb: 'FFD0DDE8' } },
+            bottom: { style: 'thin', color: { argb: 'FFD0DDE8' } },
+            right: { style: 'thin', color: { argb: 'FFD0DDE8' } },
+          };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+        });
+      });
+
+      const footRow = 6 + rows.length + 1;
+      ws.mergeCells(footRow, 2, footRow, lastDataCol);
+      const foot = ws.getCell(footRow, 2);
+      foot.value = `End of report · ${org} · Export operations · Confidential`;
+      foot.font = { size: 9, italic: true, color: { argb: 'FF4A6070' }, name: 'Calibri' };
+      foot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EEF3' } };
+      foot.alignment = { horizontal: 'center' };
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${fileBase}.xlsx`; a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    if (format === 'pdf') {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      doc.setFillColor(15, 40, 55);
+      doc.rect(0, 0, pageWidth, 72, 'F');
+      doc.setTextColor(122, 217, 255);
+      doc.setFontSize(10);
+      doc.text(org, margin, 28);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.text(`${title} (Official Record)`, margin, 48);
+      doc.setFontSize(9);
+      doc.setTextColor(184, 212, 232);
+      doc.text(`${filterNote}  ·  Generated: ${gen}`, margin, 64);
+
+      autoTable(doc, {
+        startY: 84,
+        head: [headers],
+        body: rows.map((r) => r.map(String)),
+        styles: { fontSize: 8, cellPadding: 4, textColor: [16, 32, 48], lineColor: [176, 196, 212], lineWidth: 0.3 },
+        headStyles: { fillColor: [23, 62, 95], textColor: 255, fontStyle: 'bold', cellPadding: 5 },
+        alternateRowStyles: { fillColor: [240, 247, 252] },
+        margin: { left: margin, right: margin, bottom: 48 },
+        didDrawPage: () => {
+          const h = doc.internal.pageSize.getHeight();
+          doc.setDrawColor(176, 196, 212);
+          doc.setLineWidth(0.5);
+          doc.line(margin, h - 36, pageWidth - margin, h - 36);
+          doc.setFontSize(8);
+          doc.setTextColor(90, 110, 125);
+          doc.text('Confidential — internal use only', margin, h - 22);
+          doc.text(org, pageWidth / 2, h - 22, { align: 'center' });
+          doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin, h - 22, { align: 'right' });
+        },
+      });
+      doc.save(`${fileBase}.pdf`);
+      return;
+    }
+
+    // Word — fully margined official layout
+    const th = headers.map((h) => `<th style="background:#173E5F;color:#fff;padding:8px 10px;border:1px solid #B0C4D4;text-align:left">${h}</th>`).join('');
+    const body = rows.map((r, i) => {
+      const bg = i % 2 === 0 ? '#FFFFFF' : '#F0F7FC';
+      return `<tr>${r.map((c) => `<td style="padding:7px 10px;border:1px solid #D0DDE8;background:${bg};color:#102030;font-size:10.5pt">${String(c ?? '')}</td>`).join('')}</tr>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">
+<title>${title}</title>
+<style>
+  @page { size: A4 landscape; margin: 1.6cm 1.5cm 1.6cm 1.5cm; }
+  body { font-family: Calibri, Arial, sans-serif; color: #102030; margin: 0; }
+  .band { background: #0F2837; color: #fff; padding: 14px 18px; }
+  .band .org { color: #7AD9FF; font-size: 10pt; margin: 0 0 4px; }
+  .band h1 { margin: 0; font-size: 16pt; }
+  .sub { background: #1A3A4D; color: #B8D4E8; padding: 8px 18px; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; }
+  .foot { margin-top: 18px; padding: 10px 14px; background: #E8EEF3; font-size: 9pt; color: #4A6070; text-align: center; }
+</style></head><body>
+  <div class="band">
+    <p class="org">${org}</p>
+    <h1>${title} (Official Record)</h1>
+  </div>
+  <div class="sub">${filterNote} &nbsp;·&nbsp; Generated: ${gen} &nbsp;·&nbsp; Rows: ${rows.length}</div>
+  <table>
+    <thead><tr>${th}</tr></thead>
+    <tbody>${body}</tbody>
+  </table>
+  <div class="foot">End of report · ${org} · Export operations · Confidential — internal use only</div>
+</body></html>`;
+    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `${fileBase}.doc`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const kpis = useMemo(() => {
+    const p = matchCommodity(purchases);
+    const l = matchCommodity(lots);
+    const b = matchCommodity(batches);
+    return {
+      suppliers: matchCommodity(suppliers).length,
+      plans: matchCommodity(plans).filter((x) => x.status !== 'Closed').length,
+      netReceived: p.reduce((s, x) => s + x.netKg, 0),
+      available: l.filter((x) => x.qualityStatus === 'Available').reduce((s, x) => s + x.netKg, 0),
+      released: b.filter((x) => x.releaseStatus === 'Released').reduce((s, x) => s + x.outputKg, 0),
+      allocations: matchCommodity(allocations).length,
+      docsPending: docs.filter((d) => d.status !== 'Approved').length,
+      openProceeds: proceeds.filter((x) => x.status !== 'Received').reduce((s, x) => s + (x.amountUsd - x.receivedUsd), 0),
+      openNbe: nbeRows.filter((x) => x.status !== 'Closed').length,
+      openClaims: claims.filter((x) => x.status !== 'Closed').length,
+    };
+  }, [purchases, lots, batches, suppliers, plans, allocations, docs, proceeds, nbeRows, claims, commodity]);
+
+  const etb = (n: number) => `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ETB`;
+  const kg = (n: number) => `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} kg`;
+  const mt = (n: number) => `${(Number(n || 0) / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} MT`;
+  const usd = (n: number) => `$${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+  const tabs: { id: OpTab; label: string }[] = [
+    { id: 'plan', label: '1. Sourcing plan' }, { id: 'supplier', label: '2. Suppliers' },
+    { id: 'purchase', label: '3. Purchase' }, { id: 'lot', label: '4. Warehouse lots' },
+    { id: 'process', label: '5. Processing' }, { id: 'allocate', label: '6–7. Allocate' },
+    { id: 'docs', label: '8. Documents' }, { id: 'logistics', label: '9. Logistics' },
+    { id: 'proceeds', label: '10. Proceeds' }, { id: 'nbe', label: '11. NBE' },
+    { id: 'claims', label: 'Claims' }, { id: 'reports', label: 'Reports' },
+  ];
+
+  const filteredPlans = matchCommodity(plans).filter((s) => matchQ([s.id, s.origin, s.grade].join(' ')));
+  const filteredSuppliers = matchCommodity(suppliers).filter((s) => matchQ([s.name, s.origin, s.id, s.contact].join(' ')));
+  const filteredPurchases = matchCommodity(purchases).filter((s) => matchQ([s.poNo, s.supplierName, s.origin].join(' ')));
+  const filteredLots = matchCommodity(lots).filter((s) => matchQ([s.lotNo, s.warehouse, s.grade].join(' ')));
+  const filteredBatches = matchCommodity(batches).filter((s) => matchQ([s.batchNo, s.processType, s.outputGrade].join(' ')));
+  const filteredAlloc = matchCommodity(allocations).filter((s) => matchQ([s.contractNo, s.lotNo].join(' ')));
+  const filteredDocs = docs.filter((s) => matchQ([s.shipmentNo, s.docType, s.status].join(' ')));
+  const filteredLog = logistics.filter((s) => matchQ([s.shipmentNo, s.vessel, s.container].join(' ')));
+  const filteredProceeds = proceeds.filter((s) => matchQ([s.invoiceNo, s.contractNo, s.status].join(' ')));
+  const filteredNbe = nbeRows.filter((s) => matchQ([s.ref, s.contractNo, s.action].join(' ')));
+  const filteredClaims = claims.filter((s) => matchQ([s.type, s.ref, s.owner].join(' ')));
+
+  const field = (key: string, label: string, type = 'text') => (
+    <label key={key} className="fts-field">
+      {label}
+      {type === 'textarea' ? (
+        <textarea value={form[key] || ''} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} rows={2} />
+      ) : (
+        <input type={type} value={form[key] || ''} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
+      )}
+    </label>
+  );
+
+  const ExportMenu = () => (
+    <div className="fts-export-wrap">
+      <button type="button" className="mini-btn" onClick={() => setExportOpen((o) => !o)}>Export ▾</button>
+      {exportOpen && (
+        <div className="fts-export-menu">
+          <button type="button" onClick={() => { setExportOpen(false); void runTableExport('excel'); }}>Excel spreadsheet</button>
+          <button type="button" onClick={() => { setExportOpen(false); void runTableExport('pdf'); }}>PDF document</button>
+          <button type="button" onClick={() => { setExportOpen(false); void runTableExport('word'); }}>Word document</button>
+          <button type="button" onClick={() => { setExportOpen(false); void runTableExport('csv'); }}>CSV (raw data)</button>
+        </div>
+      )}
+    </div>
+  );
+
+  const actions = (tab: OpTab, id: string, row: Record<string, unknown>) => (
+    <td>
+      {canEdit && <button type="button" className="mini-btn" onClick={() => openEdit(tab, id, row)}>Edit</button>}
+      {' '}
+      {canEdit && <button type="button" className="mini-btn" onClick={() => removeRow(tab, id)}>Del</button>}
+    </td>
+  );
+
+  return (
+    <div className="farm-to-store">
+      <div className="fts-hero">
+        <div>
+          <p className="eyebrow">NSPF · PRS end-to-end</p>
+          <h2>Farm → store → contract → shipment → proceeds → NBE</h2>
+          <p className="fts-sub">
+            Full coffee &amp; sesame operations with complete field CRUD and the same export formats as the main board
+            (Excel · PDF · Word · CSV with official header).
+          </p>
+        </div>
+        <div className="fts-filters">
+          <label>Commodity
+            <select value={commodity} onChange={(e) => setCommodity(e.target.value as 'All' | Commodity)}>
+              <option value="All">All</option>
+              <option value="Sesame">Sesame</option>
+              <option value="Coffee">Coffee</option>
+            </select>
+          </label>
+          <label>Search
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tables…" />
+          </label>
+        </div>
+      </div>
+
+      <div className="fts-kpi-grid">
+        <div className="fts-kpi"><span>Open plans</span><strong>{kpis.plans}</strong></div>
+        <div className="fts-kpi"><span>Suppliers</span><strong>{kpis.suppliers}</strong></div>
+        <div className="fts-kpi"><span>Received</span><strong>{mt(kpis.netReceived)}</strong></div>
+        <div className="fts-kpi"><span>Available stock</span><strong>{mt(kpis.available)}</strong></div>
+        <div className="fts-kpi"><span>Released</span><strong>{mt(kpis.released)}</strong></div>
+        <div className="fts-kpi"><span>Allocations</span><strong>{kpis.allocations}</strong></div>
+        <div className="fts-kpi"><span>Docs pending</span><strong>{kpis.docsPending}</strong></div>
+        <div className="fts-kpi"><span>Open proceeds</span><strong>{usd(kpis.openProceeds)}</strong></div>
+        <div className="fts-kpi"><span>NBE open</span><strong>{kpis.openNbe}</strong></div>
+        <div className="fts-kpi"><span>Claims open</span><strong>{kpis.openClaims}</strong></div>
+      </div>
+
+      <div className="fts-stages">
+        {tabs.map((s) => (
+          <button key={s.id} type="button" className={`fts-stage ${opTab === s.id ? 'active' : ''}`} onClick={() => { setOpTab(s.id); setExportOpen(false); }}>
+            <strong>{s.label}</strong>
+          </button>
+        ))}
+      </div>
+
+      <div className="fts-panel">
+        <div className="fts-panel-head" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <h3>{tabs.find((x) => x.id === opTab)?.label}</h3>
+            <p>All fields editable · Export matches main Coffee/Sesame report format</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {canEdit && opTab !== 'reports' && (
+              <button type="button" className="mini-btn" onClick={() => openAdd(opTab)}>+ Add</button>
+            )}
+            <ExportMenu />
+          </div>
+        </div>
+
+        {opTab === 'plan' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Plan</th><th>Commodity</th><th>Origin</th><th>Grade</th><th>Target MT</th><th>ETB/kg</th><th>Period</th><th>Required</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{filteredPlans.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.commodity}</td><td>{r.origin}</td><td>{r.grade}</td><td>{r.targetMt}</td><td>{r.targetPriceEtbPerKg}</td><td>{r.period}</td><td>{r.requiredBy}</td><td><span className="pill">{r.status}</span></td>{actions('plan', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'supplier' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Name</th><th>Commodity</th><th>Origin</th><th>Woreda</th><th>Contact</th><th>Phone</th><th>Score</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead>
+            <tbody>{filteredSuppliers.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.name}</td><td>{r.commodity}</td><td>{r.origin}</td><td>{r.woreda}</td><td>{r.contact}</td><td>{r.phone}</td><td>{r.performanceScore}</td><td><span className="pill">{r.status}</span></td><td>{r.notes}</td>{actions('supplier', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'purchase' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Receipt</th><th>PO</th><th>Supplier</th><th>Commodity</th><th>Origin/Grade</th><th>Date</th><th>Gross</th><th>Net kg</th><th>Bags</th><th>Moist%</th><th>Price</th><th>Deduct</th><th>Value</th><th>Status</th><th>Warehouse</th><th>Actions</th></tr></thead>
+            <tbody>{filteredPurchases.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.poNo}</td><td>{r.supplierName}</td><td>{r.commodity}</td><td>{r.origin} · {r.grade}</td><td>{r.receiptDate}</td><td>{kg(r.grossKg)}</td><td>{kg(r.netKg)}</td><td>{r.bags}</td><td>{r.moisturePct}</td><td>{r.priceEtbPerKg}</td><td>{etb(r.deductionsEtb)}</td><td>{etb(r.netKg * r.priceEtbPerKg - r.deductionsEtb)}</td><td><span className="pill">{r.status}</span></td><td>{r.warehouse}</td>{actions('purchase', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'lot' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Lot</th><th>Commodity</th><th>Origin/Grade</th><th>Purchase</th><th>Warehouse</th><th>Bin</th><th>Net kg</th><th>Bags</th><th>Status</th><th>Received</th><th>Owner</th><th>Actions</th></tr></thead>
+            <tbody>{filteredLots.map((r) => (
+              <tr key={r.id}><td>{r.lotNo}</td><td>{r.commodity}</td><td>{r.origin} · {r.grade}</td><td>{r.purchaseId}</td><td>{r.warehouse}</td><td>{r.bin}</td><td>{kg(r.netKg)}</td><td>{r.bags}</td><td><span className="pill">{r.qualityStatus}</span></td><td>{r.receivedAt}</td><td>{r.owner}</td>{actions('lot', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'process' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Batch</th><th>Commodity</th><th>Process</th><th>Input lots</th><th>In</th><th>Out</th><th>Loss</th><th>Yield</th><th>Grade</th><th>Lab</th><th>Release</th><th>Date</th><th>Store</th><th>Actions</th></tr></thead>
+            <tbody>{filteredBatches.map((r) => (
+              <tr key={r.id}><td>{r.batchNo}</td><td>{r.commodity}</td><td>{r.processType}</td><td>{r.inputLotIds.join(', ')}</td><td>{kg(r.inputKg)}</td><td>{kg(r.outputKg)}</td><td>{kg(r.lossKg)}</td><td>{r.yieldPct.toFixed(1)}%</td><td>{r.outputGrade}</td><td>{r.labResult}</td><td><span className="pill">{r.releaseStatus}</span></td><td>{r.processedAt}</td><td>{r.warehouse}</td>{actions('process', r.id, { ...r, inputLotIds: r.inputLotIds.join(', ') })}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'allocate' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Contract</th><th>Lot</th><th>Commodity</th><th>Kg</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>{filteredAlloc.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.contractNo}</td><td>{r.lotNo}</td><td>{r.commodity}</td><td>{kg(r.kg)}</td><td><span className="pill">{r.status}</span></td><td>{r.date}</td>{actions('allocate', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'docs' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Shipment</th><th>Document</th><th>Status</th><th>Issue</th><th>Owner</th><th>Notes</th><th>Actions</th></tr></thead>
+            <tbody>{filteredDocs.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.shipmentNo}</td><td>{r.docType}</td><td><span className="pill">{r.status}</span></td><td>{r.issueDate || '—'}</td><td>{r.owner}</td><td>{r.notes}</td>{actions('docs', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'logistics' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Shipment</th><th>Contract</th><th>Vessel</th><th>Container</th><th>Seal</th><th>ETD</th><th>ETA</th><th>Dry port</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{filteredLog.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.shipmentNo}</td><td>{r.contractNo}</td><td>{r.vessel}</td><td>{r.container}</td><td>{r.seal}</td><td>{r.etd}</td><td>{r.eta}</td><td>{r.dryPort}</td><td><span className="pill">{r.status}</span></td>{actions('logistics', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'proceeds' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Invoice</th><th>Contract</th><th>Amount</th><th>Received</th><th>Outstanding</th><th>Method</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{filteredProceeds.map((r) => (
+              <tr key={r.id}><td>{r.invoiceNo}</td><td>{r.contractNo}</td><td>{usd(r.amountUsd)}</td><td>{usd(r.receivedUsd)}</td><td>{usd(r.amountUsd - r.receivedUsd)}</td><td>{r.method}</td><td>{r.dueDate}</td><td><span className="pill">{r.status}</span></td>{actions('proceeds', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'nbe' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Ref</th><th>Contract</th><th>Deadline</th><th>Action</th><th>Owner</th><th>Evidence</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{filteredNbe.map((r) => (
+              <tr key={r.id}><td>{r.ref}</td><td>{r.contractNo}</td><td>{r.deadline}</td><td>{r.action}</td><td>{r.owner}</td><td>{r.evidence}</td><td><span className="pill">{r.status}</span></td>{actions('nbe', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'claims' && (
+          <div className="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Type</th><th>Ref</th><th>Severity</th><th>Owner</th><th>Due</th><th>Impact</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{filteredClaims.map((r) => (
+              <tr key={r.id}><td>{r.id}</td><td>{r.type}</td><td>{r.ref}</td><td>{r.severity}</td><td>{r.owner}</td><td>{r.dueDate}</td><td>{usd(r.impactUsd)}</td><td><span className="pill">{r.status}</span></td>{actions('claims', r.id, r as unknown as Record<string, unknown>)}</tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        {opTab === 'reports' && (
+          <div className="fts-ready-grid">
+            <div className="fts-trace">
+              <h4>Cross-functional reports</h4>
+              <ul className="fts-list">
+                <li><strong>Stock coverage</strong><span>Available {mt(kpis.available)} · Released {mt(kpis.released)}</span></li>
+                <li><strong>Proceeds</strong><span>Open {usd(kpis.openProceeds)}</span></li>
+                <li><strong>Compliance</strong><span>NBE open {kpis.openNbe} · Claims {kpis.openClaims} · Docs pending {kpis.docsPending}</span></li>
+              </ul>
+              <p style={{ marginTop: 12, color: '#9ec8e0', fontSize: 12 }}>Use <strong>Export ▾</strong> for Excel / PDF / Word / CSV of the summary or switch tabs to export each register with full columns.</p>
+            </div>
+            <div className="fts-trace">
+              <h4>Traceability chain</h4>
+              <ol>
+                <li>Supplier / farm</li><li>Purchase receipt</li><li>Warehouse lot</li>
+                <li>Processing & lab release</li><li>Contract allocation</li>
+                <li>Documents & logistics</li><li>Proceeds & NBE closure</li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {modalOpen && (
+        <div className="fts-modal-backdrop" onClick={() => setModalOpen(false)} role="presentation">
+          <div className="fts-modal" onClick={(e) => e.stopPropagation()} role="dialog">
+            <h3>{modalTitle}</h3>
+            <div className="fts-form-grid">
+              {formFields.map((f) => field(f.key, f.label, f.type || 'text'))}
+            </div>
+            <div className="fts-form-actions">
+              <button type="button" className="mini-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+              <button type="button" className="mini-btn" onClick={saveModal}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/* ========== end Farm → Store ========== */
 
 export default function ExportApp({
   canViewContract = false,
@@ -1630,6 +2819,7 @@ export default function ExportApp({
   };
 
   const contractFlowView = activeTab === 'contract-flow';
+  const farmToStoreView = activeTab === 'farm-to-store';
 
   useEffect(() => {
     if (activeTab === 'contract-flow' && !canViewContract) {
@@ -1642,7 +2832,7 @@ export default function ExportApp({
       <header className="topbar">
         <div className="brand-block">
           <small className="eyebrow">Export operations</small>
-          <h1>{contractFlowView ? 'Exchange agreement workflow' : activeTab === 'coffee' ? 'Coffee' : 'Sesame'} export overview</h1>
+          <h1>{contractFlowView ? 'Exchange agreement workflow' : activeTab === 'farm-to-store' ? 'Farm → Store pipeline' : activeTab === 'coffee' ? 'Coffee' : 'Sesame'} export overview</h1>
           <div className="brand-meta">
             <span className="tiny-chip">Weekly tracking</span>
             <span className="tiny-chip">Finance view</span>
@@ -1773,6 +2963,13 @@ export default function ExportApp({
               Sesame
             </button>
           )}
+          <button
+            type="button"
+            className={activeTab === 'farm-to-store' ? 'tab-button active' : 'tab-button'}
+            onClick={() => setActiveTab('farm-to-store')}
+          >
+            Farm → Store
+          </button>
           {canViewContract && (
             <button
               type="button"
@@ -1823,7 +3020,14 @@ export default function ExportApp({
                 <div style={{ padding: '8px 12px', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8ecbee' }}>
                   Current view ({activeTab})
                 </div>
-                {(['excel', 'pdf', 'word', 'csv'] as const).map((fmt) => (
+                {(['excel', 'pdf', 'word', 'csv'] as const)
+                  .filter((fmt) =>
+                    (fmt === 'excel' && canExportExcel) ||
+                    (fmt === 'pdf' && canExportPdf) ||
+                    (fmt === 'word' && canExportWord) ||
+                    (fmt === 'csv' && canExportCsv),
+                  )
+                  .map((fmt) => (
                   <button
                     key={`v-${fmt}`}
                     type="button"
@@ -1837,7 +3041,14 @@ export default function ExportApp({
                 <div style={{ padding: '8px 12px', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8ecbee' }}>
                   Complete flow (Coffee + Sesame + Contracts)
                 </div>
-                {(['excel', 'pdf', 'word', 'csv'] as const).map((fmt) => (
+                {(['excel', 'pdf', 'word', 'csv'] as const)
+                  .filter((fmt) =>
+                    (fmt === 'excel' && canExportExcel) ||
+                    (fmt === 'pdf' && canExportPdf) ||
+                    (fmt === 'word' && canExportWord) ||
+                    (fmt === 'csv' && canExportCsv),
+                  )
+                  .map((fmt) => (
                   <button
                     key={`f-${fmt}`}
                     type="button"
@@ -1855,7 +3066,12 @@ export default function ExportApp({
         </div>
       </section>
 
-      {contractFlowView ? (
+      {farmToStoreView ? (
+        <>
+          <FarmToStoreStyles />
+          <FarmToStorePanel canEdit={Boolean(canEdit || canAdd)} />
+        </>
+      ) : contractFlowView ? (
         <section className="contract-shell">
           {/* ── Contract list sidebar ── */}
           <div className="contract-sidebar">
@@ -1936,20 +3152,20 @@ export default function ExportApp({
                 </div>
 
                 {/* KPI payments */}
-                <section className="kpi-grid" style={{ marginBottom: 0 }}>
+                <section className="kpi-grid contract-kpi-grid" style={{ marginBottom: 0 }}>
                   <div className="kpi-card">
                     <span>Payment total</span>
-                    <strong>{money(contractPaymentTotals.total)}</strong>
+                    <strong title={money(contractPaymentTotals.total)}>{money(contractPaymentTotals.total)}</strong>
                     <small>Contract lines</small>
                   </div>
                   <div className="kpi-card">
                     <span>Collected</span>
-                    <strong>{money(contractPaymentTotals.paid)}</strong>
+                    <strong title={money(contractPaymentTotals.paid)}>{money(contractPaymentTotals.paid)}</strong>
                     <small>Paid + partial</small>
                   </div>
                   <div className="kpi-card">
                     <span>Open receivable</span>
-                    <strong>{money(contractPaymentTotals.open)}</strong>
+                    <strong title={money(contractPaymentTotals.open)}>{money(contractPaymentTotals.open)}</strong>
                     <small>Outstanding</small>
                   </div>
                   <div className="kpi-card">
