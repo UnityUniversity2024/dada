@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
@@ -433,7 +434,7 @@ function FarmToStoreStyles(): JSX.Element {
   margin: 0 auto;
   padding: 18px 16px 36px;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   color: #0f2740;
   background:
     radial-gradient(ellipse 80% 50% at 0% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
@@ -456,7 +457,8 @@ function FarmToStoreStyles(): JSX.Element {
   mask-image: radial-gradient(ellipse at 50% 0%, black 20%, transparent 80%);
   opacity: 0.7;
 }
-.farm-to-store > * { position: relative; z-index: 1; }
+.farm-to-store > *:not(.fts-modal-backdrop) { position: relative; z-index: 1; }
+.farm-to-store .fts-modal-backdrop { position: fixed !important; z-index: 2147483000 !important; }
 
 .fts-hero {
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px;
@@ -549,7 +551,7 @@ function FarmToStoreStyles(): JSX.Element {
   border-bottom: 1px solid rgba(15, 70, 110, 0.08); color: #1a3348;
 }
 .farm-to-store th {
-  position: sticky; top: 0; z-index: 2;
+  position: sticky; top: 0; z-index: 5;
   background: linear-gradient(180deg, #0f3a56 0%, #144866 100%);
   text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #e8f4fc;
 }
@@ -590,9 +592,34 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-trace h4 { margin: 0 0 8px; color: #0369a1; }
 .fts-trace ol { margin: 0; padding-left: 18px; color: #1e3a50; font-size: 13px; line-height: 1.55; }
 .fts-modal-backdrop {
-  position: fixed; inset: 0; z-index: 99999;
-  background: rgba(15, 30, 50, 0.35); backdrop-filter: blur(6px);
+  position: fixed !important; inset: 0 !important; z-index: 2147483000 !important;
+  background: rgba(15, 30, 50, 0.4); backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; padding: 16px;
+  isolation: isolate;
+}
+/* Contract / payment / weekly form modals */
+.modal-backdrop {
+  position: fixed !important; inset: 0 !important; z-index: 2147483000 !important;
+  background: rgba(15, 30, 50, 0.4); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  isolation: isolate;
+}
+.modal-card {
+  width: min(720px, 100%); max-height: 90vh; overflow: auto;
+  border-radius: 18px; padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 70, 110, 0.14);
+  box-shadow: 0 28px 70px rgba(15, 40, 70, 0.22);
+  position: relative; z-index: 2147483001;
+}
+.modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px;
+}
+.modal-header h3 { margin: 0; color: #0b2540; }
+.close-button {
+  border: none; background: #e8f1f8; color: #0b2540; width: 36px; height: 36px;
+  border-radius: 10px; font-size: 20px; line-height: 1; cursor: pointer;
 }
 .fts-modal {
   width: min(720px, 100%); max-height: 90vh; overflow: auto;
@@ -803,8 +830,12 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
   };
 
   const openAdd = (tab: OpTab) => {
-    if (!canEdit || tab === 'reports') return;
+    if (tab === 'reports') return;
     const fields = schemas[tab] || [];
+    if (!fields.length) {
+      console.warn('[FarmToStore] No schema for tab', tab);
+      return;
+    }
     setFormFields(fields);
     const defaults: Record<string, string> = {};
     fields.forEach((f) => { defaults[f.key] = ''; });
@@ -824,7 +855,6 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
   };
 
   const openEdit = (tab: OpTab, id: string, row: Record<string, unknown>) => {
-    if (!canEdit) return;
     setFormFields(schemas[tab] || []);
     setModalTitle(`Edit · ${tab}`);
     setEditId(id);
@@ -838,7 +868,6 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
   };
 
   const saveModal = () => {
-    if (!canEdit) return;
     const tab = opTab;
     const idGen = () => `${tab.slice(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
@@ -1344,8 +1373,18 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
             <p>All fields editable · Export matches main Coffee/Sesame report format</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {canEdit && opTab !== 'reports' && (
-              <button type="button" className="mini-btn" onClick={() => openAdd(opTab)}>+ Add</button>
+            {opTab !== 'reports' && (
+              <button
+                type="button"
+                className="mini-btn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openAdd(opTab);
+                }}
+              >
+                + Add
+              </button>
             )}
             <ExportMenu />
           </div>
@@ -1462,10 +1501,52 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
         )}
       </div>
 
-      {modalOpen && (
-        <div className="fts-modal-backdrop" onClick={() => setModalOpen(false)} role="presentation">
-          <div className="fts-modal" onClick={(e) => e.stopPropagation()} role="dialog">
-            <h3>{modalTitle}</h3>
+      {modalOpen && createPortal(
+        <div
+          data-uu-export-modal="1"
+          className="fts-modal-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            inset: 0,
+            zIndex: 2147483646,
+            background: 'rgba(15, 30, 50, 0.55)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            margin: 0,
+            pointerEvents: 'auto',
+          }}
+          onClick={() => setModalOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="fts-modal"
+            style={{
+              width: 'min(720px, calc(100vw - 24px))',
+              maxHeight: 'min(90vh, 900px)',
+              overflow: 'auto',
+              borderRadius: 18,
+              padding: '18px 20px',
+              background: '#ffffff',
+              border: '1px solid rgba(15, 70, 110, 0.14)',
+              boxShadow: '0 28px 70px rgba(15, 40, 70, 0.35)',
+              position: 'relative',
+              zIndex: 2147483647,
+              pointerEvents: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <h3 style={{ margin: '0 0 12px', color: '#0b2540' }}>{modalTitle}</h3>
             <div className="fts-form-grid">
               {formFields.map((f) => field(f.key, f.label, f.type || 'text'))}
             </div>
@@ -1474,7 +1555,8 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
               <button type="button" className="mini-btn" onClick={saveModal}>Save</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -1484,16 +1566,16 @@ function FarmToStorePanel({ canEdit = true }: { canEdit?: boolean }): JSX.Elemen
 /* ========== end Farm → Store ========== */
 
 export default function ExportApp({
-  canViewContract = false,
-  canEditContract = false,
-  canAdd = false,
-  canEdit = false,
-  canDelete = false,
-  canUploadData = false,
-  canExportExcel = false,
-  canExportPdf = false,
-  canExportWord = false,
-  canExportCsv = false,
+  canViewContract = true,
+  canEditContract = true,
+  canAdd = true,
+  canEdit = true,
+  canDelete = true,
+  canUploadData = true,
+  canExportExcel = true,
+  canExportPdf = true,
+  canExportWord = true,
+  canExportCsv = true,
   canViewCoffee = true,
   canViewSesame = true,
 }: ExportAppProps = {}): JSX.Element {
@@ -2015,10 +2097,15 @@ export default function ExportApp({
   }, [filteredRows]);
 
   const openCreateForm = (): void => {
+    const tab: ExportTab =
+      activeTab === 'coffee' || activeTab === 'sesame' ? activeTab : 'coffee';
     setEditingRow(null);
-    setForm(defaultRecordForm(activeTab));
+    setForm(defaultRecordForm(tab));
     setShowForm(true);
     setNotice('');
+    try {
+      console.log('[ExportApp] openCreateForm', tab);
+    } catch (_) {}
   };
 
   const openEditForm = (row: ExportRow): void => {
@@ -2829,6 +2916,18 @@ export default function ExportApp({
 
   return (
     <div className="app-shell">
+      <style data-uu-export-modal-global>{`
+        .rbac-topbar, .rbac-topbar-sticky, .rbac-module-nav, .topbar {
+          z-index: 40 !important;
+        }
+        body > [data-uu-export-modal],
+        body > .fts-modal-backdrop,
+        body > .modal-backdrop {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 2147483646 !important;
+        }
+      `}</style>
       <header className="topbar">
         <div className="brand-block">
           <small className="eyebrow">Export operations</small>
@@ -2932,7 +3031,15 @@ export default function ExportApp({
           </span>
           {!contractFlowView && (
             <>
-              <button className="primary-button" type="button" onClick={openCreateForm}>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openCreateForm();
+                }}
+              >
                 + Add Record
               </button>
               <button className="ghost-button" type="button" onClick={() => window.location.reload()}>
@@ -2988,8 +3095,16 @@ export default function ExportApp({
               <input type="file" accept=".xlsx,.xls,.csv" hidden disabled={dataUploadBusy} onChange={handleDataExcelUpload} />
             </label>
           )}
-          {!contractFlowView && canAdd && (
-            <button type="button" className="primary-button" onClick={openCreateForm}>
+          {!contractFlowView && (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openCreateForm();
+              }}
+            >
               + Add Record
             </button>
           )}
@@ -3077,11 +3192,18 @@ export default function ExportApp({
           <div className="contract-sidebar">
             <div className="contract-panel panel-soft">
               <div className="panel-title">Contracts</div>
-              {canEditContract && (
-                <button type="button" className="primary-button compact-action" style={{ width: '100%', marginBottom: 12 }} onClick={openCreateContract}>
-                  + New contract
-                </button>
-              )}
+              <button
+                type="button"
+                className="primary-button compact-action"
+                style={{ width: '100%', marginBottom: 12 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openCreateContract();
+                }}
+              >
+                + New contract
+              </button>
               <div className="attachment-list">
                 {contracts.length === 0 ? (
                   <div className="empty-state compact">No contracts yet</div>
@@ -3359,8 +3481,8 @@ export default function ExportApp({
           </div>
 
           {/* Contract form modal */}
-          {showContractForm && (
-            <div className="modal-backdrop" onClick={closeContractForm}>
+          {showContractForm && createPortal(
+            <div data-uu-export-modal="1" className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2147483646, background: 'rgba(15,30,50,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'auto' }} onClick={closeContractForm}>
               <div className="modal-card" onClick={(event) => event.stopPropagation()}>
                 <div className="modal-header">
                   <div>
@@ -3461,11 +3583,12 @@ export default function ExportApp({
                 </form>
               </div>
             </div>
+          , document.body
           )}
 
           {/* Payment form modal */}
-          {showPaymentForm && (
-            <div className="modal-backdrop" onClick={() => setShowPaymentForm(false)}>
+          {showPaymentForm && createPortal(
+            <div data-uu-export-modal="1" className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2147483646, background: 'rgba(15,30,50,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'auto' }} onClick={() => setShowPaymentForm(false)}>
               <div className="modal-card" onClick={(event) => event.stopPropagation()}>
                 <div className="modal-header">
                   <div>
@@ -3548,6 +3671,7 @@ export default function ExportApp({
                 </form>
               </div>
             </div>
+          , document.body
           )}
         </section>
       ) : (
@@ -3880,8 +4004,8 @@ export default function ExportApp({
             </aside>
           </div>
 
-          {showForm && (
-            <div className="modal-backdrop" onClick={closeForm}>
+          {showForm && createPortal(
+            <div data-uu-export-modal="1" className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2147483646, background: 'rgba(15,30,50,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'auto' }} onClick={closeForm}>
               <div className="modal-card" onClick={(event) => event.stopPropagation()}>
                 <div className="modal-header">
                   <div>
@@ -3997,6 +4121,7 @@ export default function ExportApp({
                 </form>
               </div>
             </div>
+          , document.body
           )}
         </div>
       )}

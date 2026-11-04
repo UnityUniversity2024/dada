@@ -41,8 +41,24 @@ const defaultRoleChoices = Object.keys(DEFAULT_PERMISSIONS_MAP);
 export default function RBACAuthApp(): JSX.Element {
   const [users, setUsers] = useState<UserRecord[]>(() => readJson<UserRecord[]>(USERS_KEY, DEFAULT_USERS));
   const [roles, setRoles] = useState<RoleDefinition[]>(() => readJson<RoleDefinition[]>(ROLES_KEY, BASE_ROLES));
-  const [session, setSession] = useState<UserRecord | null>(null);
-  const [activeTab, setActiveTab] = useState<'export' | 'settings'>('export');
+  const [session, setSession] = useState<UserRecord | null>(() => {
+    // Keep login across browser refresh
+    try {
+      const saved = readJson<UserRecord | null>(SESSION_KEY, null);
+      if (saved && saved.username) return saved;
+    } catch (_) {}
+    return null;
+  });
+  const [activeTab, setActiveTab] = useState<'export' | 'settings'>(() => {
+    try {
+      const t = window.localStorage.getItem('uu_export_tab');
+      if (t === 'settings' || t === 'export') return t;
+    } catch (_) {}
+    return 'export';
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('uu_export_tab', activeTab); } catch (_) {}
+  }, [activeTab]);
   const [loginMode, setLoginMode] = useState<'login' | 'register'>('login');
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'password' });
   const [registerForm, setRegisterForm] = useState({
@@ -199,7 +215,16 @@ export default function RBACAuthApp(): JSX.Element {
     (event.currentTarget as HTMLFormElement).reset();
   };
 
-  const isAdmin = session?.role === 'admin' || normalizeRoleName(session?.role || '') === 'admin';
+  const isAdmin =
+    session?.role === 'admin' ||
+    normalizeRoleName(session?.role || '') === 'admin' ||
+    normalizeRoleName(session?.role || '') === 'administrator' ||
+    hasPermission(session?.role || '', 'ROLE_CRUD', roles);
+  const canOpenSettings = Boolean(session) && (isAdmin || hasPermission(session.role, 'ROLE_CRUD', roles));
+
+  const roleOptions = (roles && roles.length) ? roles : BASE_ROLES;
+  const permissionChoices =
+    defaultRoleChoices.length > 0 ? defaultRoleChoices : Object.keys(DEFAULT_PERMISSIONS_MAP);
 
   if (!session) {
     return (
@@ -285,7 +310,7 @@ export default function RBACAuthApp(): JSX.Element {
                     }))
                   }
                 >
-                  {roles.map((role) => (
+                  {roleOptions.map((role) => (
                     <option key={role.id} value={role.id}>
                       {role.name}
                     </option>
@@ -352,17 +377,28 @@ export default function RBACAuthApp(): JSX.Element {
           const disabled =
             tab.id === 'export'
               ? !canAccessModule(session.role, 'export', session.modules)
-              : !isAdmin && !hasPermission(session.role, 'ROLE_CRUD', roles);
+              : !canOpenSettings;
           return (
             <button
               key={tab.id}
               type="button"
-              className={activeTab === tab.id ? 'rbac-module-button active' : 'rbac-module-button'}
+              className={
+                (activeTab === tab.id ? 'rbac-module-button active' : 'rbac-module-button') +
+                (disabled ? ' is-disabled' : '')
+              }
               onClick={() => {
-                if (disabled) return;
+                if (disabled) {
+                  setNotice(
+                    tab.id === 'settings'
+                      ? 'RBAC Settings requires Admin (ROLE_CRUD). Log in as admin / password.'
+                      : 'You do not have access to this module.',
+                  );
+                  return;
+                }
                 setActiveTab(tab.id);
               }}
-              disabled={disabled}
+              aria-disabled={disabled}
+              title={disabled ? 'No permission' : tab.label}
             >
               {tab.label}
             </button>
@@ -388,7 +424,7 @@ export default function RBACAuthApp(): JSX.Element {
               <label>
                 Permissions
                 <div className="rbac-checkbox-row wrap-row">
-                  {defaultRoleChoices.map((permissionKey) => (
+                  {permissionChoices.map((permissionKey) => (
                     <label key={permissionKey} className="rbac-checkbox-item">
                       <input type="checkbox" name="permissions" value={permissionKey} />
                       {permissionKey}
@@ -396,9 +432,11 @@ export default function RBACAuthApp(): JSX.Element {
                   ))}
                 </div>
               </label>
-              <button type="submit" className="rbac-primary-button">
-                Add role
-              </button>
+              <div className="rbac-form-actions">
+                <button type="submit" className="rbac-primary-button rbac-settings-action">
+                  Add role
+                </button>
+              </div>
             </form>
 
             <div className="rbac-table-wrap">
@@ -461,7 +499,7 @@ export default function RBACAuthApp(): JSX.Element {
                     }))
                   }
                 >
-                  {roles.map((role) => (
+                  {roleOptions.map((role) => (
                     <option key={role.id} value={role.id}>
                       {role.name}
                     </option>
@@ -470,7 +508,7 @@ export default function RBACAuthApp(): JSX.Element {
               </label>
               <button
                 type="button"
-                className="rbac-primary-button"
+                className="rbac-primary-button rbac-settings-action"
                 onClick={() => {
                   if (!registerForm.username.trim() || !registerForm.password.trim()) {
                     setNotice('A username and password are required.');
@@ -536,9 +574,9 @@ export default function RBACAuthApp(): JSX.Element {
             role={session.role}
             permissions={currentPermissions}
             canViewContract={hasPermission(session.role, 'CONTRACT_VIEW', roles)}
-            canEditContract={hasPermission(session.role, 'CONTRACT_EDIT', roles)}
-            canAdd={hasPermission(session.role, 'CAN_ADD_RECORD', roles)}
-            canEdit={hasPermission(session.role, 'CAN_EDIT_RECORD', roles)}
+            canEditContract={hasPermission(session.role, 'CONTRACT_EDIT', roles) || hasPermission(session.role, 'EXP_EDIT', roles) || normalizeRoleName(session.role) === 'admin'}
+            canAdd={hasPermission(session.role, 'CAN_ADD_RECORD', roles) || hasPermission(session.role, 'EXP_EDIT', roles) || normalizeRoleName(session.role) === 'admin'}
+            canEdit={hasPermission(session.role, 'CAN_EDIT_RECORD', roles) || hasPermission(session.role, 'EXP_EDIT', roles) || normalizeRoleName(session.role) === 'admin'}
             canDelete={hasPermission(session.role, 'CAN_DELETE_RECORD', roles)}
             canUploadData={hasPermission(session.role, 'UPLOAD_DATA', roles)}
             canExportExcel={hasPermission(session.role, 'EXPORT_EXCEL', roles)}
