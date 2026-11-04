@@ -1,5 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
+.rbac-topbar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
 
+.rbac-topbar,
+.rbac-topbar-sticky,
+.rbac-module-nav {
+  z-index: 40 !important;
+}
+
+body > .fts-modal-backdrop,
+body > .modal-backdrop,
+body > [data-uu-export-modal] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important;
+}
 .rbac-page-shell {
   min-height: 100vh;
   display: grid;
