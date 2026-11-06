@@ -435,15 +435,10 @@ function FarmToStoreStyles(): JSX.Element {
   padding: 18px 16px 36px;
   border-radius: 20px;
   overflow: visible;
-  color: #0f2740;
-  background:
-    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(16, 185, 129, 0.06), transparent 45%),
-    linear-gradient(180deg, #f8fbfd 0%, #eef4f9 45%, #f5f8fb 100%);
-  border: 1px solid rgba(15, 60, 90, 0.1);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 18px 48px rgba(15, 40, 70, 0.08);
+  color: #e8f4fc;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 .farm-to-store::before {
   content: "";
@@ -492,7 +487,7 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-filters select, .fts-filters input {
   min-width: 160px; padding: 9px 12px; border-radius: 11px;
   border: 1px solid rgba(15, 70, 110, 0.18);
-  background: #ffffff; color: #0f2740;
+  background: rgba(255,255,255,0.2); color: #0f2740;
   box-shadow: 0 1px 2px rgba(15, 40, 70, 0.04);
 }
 .fts-kpi-grid {
@@ -501,7 +496,7 @@ function FarmToStoreStyles(): JSX.Element {
 }
 .fts-kpi {
   border-radius: 14px; padding: 12px 14px;
-  background: #ffffff;
+  background: rgba(255,255,255,0.2);
   border: 1px solid rgba(15, 70, 110, 0.1);
   box-shadow: 0 6px 18px rgba(15, 40, 70, 0.05);
 }
@@ -517,7 +512,7 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-stage {
   text-align: left; border-radius: 12px; padding: 10px 12px; cursor: pointer;
   border: 1px solid rgba(15, 70, 110, 0.1);
-  background: #ffffff; color: #1e3a50;
+  background: rgba(255,255,255,0.2); color: #1e3a50;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 .fts-stage:hover {
@@ -534,29 +529,37 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-panel {
   border-radius: 18px;
   border: 1px solid rgba(15, 70, 110, 0.1);
-  background: #ffffff;
+  background: rgba(255,255,255,0.2);
   padding: 16px 16px 20px;
   box-shadow: 0 12px 36px rgba(15, 40, 70, 0.06);
 }
 .fts-panel-head h3 { margin: 0 0 4px; color: #0b2540; font-size: 1.08rem; }
 .fts-panel-head p { margin: 0 0 12px; color: #5a7a94; font-size: 12.5px; }
 .farm-to-store .table-wrap {
-  overflow: auto; max-height: min(52vh, 520px); border-radius: 14px;
-  border: 1px solid rgba(15, 70, 110, 0.12);
-  background: #fbfcfe;
+  overflow-x: auto; overflow-y: auto;
+  max-height: min(52vh, 520px); border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: rgba(255,255,255,0.2);
+  overscroll-behavior: contain;
 }
-.farm-to-store table { width: max-content; min-width: 100%; border-collapse: collapse; }
+.farm-to-store {
+  overflow-x: hidden;
+}
+.farm-to-store table { width: max-content; min-width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.2); }
 .farm-to-store th, .farm-to-store td {
   padding: 9px 11px; font-size: 12px; text-align: left; white-space: nowrap;
-  border-bottom: 1px solid rgba(15, 70, 110, 0.08); color: #1a3348;
+  border-bottom: 1px solid #eef2f6; color: #0f172a; background: rgba(255,255,255,0.2);
 }
 .farm-to-store th {
   position: sticky; top: 0; z-index: 5;
-  background: linear-gradient(180deg, #0f3a56 0%, #144866 100%);
-  text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #e8f4fc;
+  background: rgba(255,255,255,0.2) !important;
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px;
+  color: #334155 !important;
+  border-bottom: 2px solid #e2e8f0;
+  box-shadow: 0 1px 0 #e2e8f0;
 }
-.farm-to-store tbody tr:nth-child(even) td { background: #f5f9fc; }
-.farm-to-store tbody tr:hover td { background: #e8f4fc; }
+.farm-to-store tbody tr:nth-child(even) td { background: rgba(255,255,255,0.2); }
+.farm-to-store tbody tr:hover td { background: #f8fafc; }
 .farm-to-store .pill {
   display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700;
   background: #e0f2fe; color: #0369a1;
@@ -607,7 +610,7 @@ function FarmToStoreStyles(): JSX.Element {
 .modal-card {
   width: min(720px, 100%); max-height: 90vh; overflow: auto;
   border-radius: 18px; padding: 18px 20px;
-  background: #ffffff;
+  background: rgba(255,255,255,0.94);
   border: 1px solid rgba(15, 70, 110, 0.14);
   box-shadow: 0 28px 70px rgba(15, 40, 70, 0.22);
   position: relative; z-index: 2147483001;
@@ -624,7 +627,7 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-modal {
   width: min(720px, 100%); max-height: 90vh; overflow: auto;
   border-radius: 18px; padding: 18px 20px;
-  background: #ffffff;
+  background: rgba(255,255,255,0.94);
   border: 1px solid rgba(15, 70, 110, 0.14);
   box-shadow: 0 28px 70px rgba(15, 40, 70, 0.18);
 }
@@ -643,14 +646,14 @@ function FarmToStoreStyles(): JSX.Element {
 .fts-field input:focus, .fts-field textarea:focus, .fts-field select:focus {
   outline: none; border-color: #0284c7;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-  background: #ffffff;
+  background: rgba(255,255,255,0.2);
 }
 .fts-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .fts-export-wrap { position: relative; }
 .fts-export-menu {
   position: absolute; right: 0; top: 100%; margin-top: 6px; z-index: 50;
   min-width: 220px; border-radius: 12px; padding: 6px;
-  background: #ffffff; border: 1px solid rgba(15, 70, 110, 0.14);
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(15, 70, 110, 0.14);
   box-shadow: 0 16px 40px rgba(15, 40, 70, 0.12);
 }
 .fts-export-menu button {
@@ -2916,17 +2919,473 @@ export default function ExportApp({
 
   return (
     <div className="app-shell">
+      <FarmToStoreStyles />
       <style data-uu-export-modal-global>{`
-        .rbac-topbar, .rbac-topbar-sticky, .rbac-module-nav, .topbar {
-          z-index: 40 !important;
-        }
-        body > [data-uu-export-modal],
-        body > .fts-modal-backdrop,
-        body > .modal-backdrop {
-          position: fixed !important;
-          inset: 0 !important;
-          z-index: 2147483646 !important;
-        }
+
+/* ===== Z-ORDER: Add modals always on top ===== */
+[data-uu-export-modal="1"],
+.fts-modal-backdrop,
+.modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2147483646 !important;
+  background: rgba(15, 30, 50, 0.55) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+}
+.fts-modal,
+.modal-card {
+  position: relative !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  max-height: 90vh !important;
+  overflow: auto !important;
+}
+/* Keep chrome under modals */
+.topbar,
+.rbac-topbar,
+.rbac-topbar-sticky,
+.header,
+nav,
+.app-shell > header {
+  z-index: 40 !important;
+}
+
+
+/* ===== Robust contrasted theme ===== */
+.app-shell {
+  min-height: 100vh !important;
+  color: #0a1628 !important;
+  background:
+    radial-gradient(ellipse 85% 50% at 0% 0%, rgba(2, 132, 199, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 150, 105, 0.08), transparent 45%),
+    linear-gradient(180deg, #e8f1f8 0%, #dfeaf3 35%, #eef4f8 100%) !important;
+}
+
+.trade-dashboard,
+.farm-to-store,
+.contract-shell {
+  max-width: 1460px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  color: #0a1628 !important;
+}
+
+/* Cards: white on cool gray-blue bg — strong edge */
+.trade-dashboard .kpi-card,
+.fts-kpi,
+.trade-dashboard .panel,
+.trade-dashboard .table-panel,
+.trade-dashboard .chart-panel,
+.trade-dashboard .sidebar-panel,
+.contract-panel,
+.fts-panel,
+.fts-hero,
+.fts-stage,
+.farm-to-store .fts-kpi,
+.farm-to-store .fts-panel,
+.farm-to-store .fts-hero,
+.farm-to-store .fts-stage {
+  background: #ffffff !important;
+  border: 1.5px solid #94b8d0 !important;
+  box-shadow: 0 8px 24px rgba(10, 40, 70, 0.12) !important;
+  color: #0a1628 !important;
+  border-radius: 14px !important;
+  backdrop-filter: none !important;
+}
+.fts-stage:hover,
+.trade-dashboard .kpi-card:hover {
+  border-color: #0284c7 !important;
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.16) !important;
+}
+.fts-stage.active {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  border-width: 2px !important;
+}
+
+.trade-dashboard .kpi-card span,
+.trade-dashboard .kpi-card small,
+.fts-kpi span,
+.fts-sub,
+.panel-header small,
+.eyebrow {
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+}
+.trade-dashboard .kpi-card strong,
+.fts-kpi strong,
+.panel-header h3,
+.fts-panel-head h3,
+.fts-hero h2,
+.brand-block h1 {
+  color: #0a1628 !important;
+  font-weight: 800 !important;
+}
+
+/* Table: high contrast header + body */
+.trade-dashboard .table-wrap,
+.farm-to-store .table-wrap,
+.app-shell .table-wrap,
+.shipment-table-scroll,
+.contract-table-wrap .table-wrap {
+  background: #ffffff !important;
+  border: 1.5px solid #94b8d0 !important;
+  border-radius: 12px !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  max-height: min(52vh, 520px) !important;
+}
+.table-wrap table,
+.farm-to-store table {
+  background: #ffffff !important;
+  color: #0a1628 !important;
+}
+.table-wrap th,
+.farm-to-store th,
+.app-shell .table-wrap thead th,
+.table-wrap thead th {
+  background: #0c4a6e !important;
+  color: #ffffff !important;
+  border-bottom: 2px solid #0284c7 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 11px 12px !important;
+}
+.table-wrap td,
+.farm-to-store td {
+  background: #ffffff !important;
+  color: #0a1628 !important;
+  border-bottom: 1px solid #c5d9e8 !important;
+  padding: 10px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+.table-wrap tbody tr:nth-child(even) td,
+.farm-to-store tbody tr:nth-child(even) td {
+  background: #f0f7fc !important;
+}
+.table-wrap tbody tr:hover td,
+.farm-to-store tbody tr:hover td {
+  background: #bae6fd !important;
+  color: #0a1628 !important;
+}
+
+.pill, .status-pill {
+  background: #e0f2fe !important;
+  color: #0c4a6e !important;
+  border: 1px solid #7dd3fc !important;
+  font-weight: 800 !important;
+}
+.pill.released, .pill.available, .pill.active,
+.pill.settled, .pill.inspected, .pill.approved, .pill.received,
+.status-pill.delivered, .status-pill.paid {
+  background: #bbf7d0 !important;
+  color: #14532d !important;
+  border-color: #4ade80 !important;
+}
+.pill.hold, .pill.quarantine, .pill.open, .pill.pending, .pill.partial,
+.status-pill.pending, .status-pill.open, .status-pill.partial {
+  background: #fde68a !important;
+  color: #78350f !important;
+  border-color: #fbbf24 !important;
+}
+
+.fts-filters select,
+.fts-filters input,
+.controls input,
+.controls select {
+  background: #ffffff !important;
+  border: 1.5px solid #94b8d0 !important;
+  color: #0a1628 !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+.fts-filters select:focus,
+.controls input:focus {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+  outline: none;
+}
+
+.fts-modal,
+.modal-card {
+  background: #ffffff !important;
+  border: 2px solid #0284c7 !important;
+  color: #0a1628 !important;
+  box-shadow: 0 28px 80px rgba(10, 40, 70, 0.25) !important;
+}
+.fts-modal h3, .modal-header h3 { color: #0369a1 !important; }
+.fts-field input, .fts-field select, .fts-field textarea,
+.modal-card input, .modal-card select, .modal-card textarea {
+  background: #f8fbfd !important;
+  border: 1.5px solid #94b8d0 !important;
+  color: #0a1628 !important;
+}
+
+.primary-button, .primary-btn {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3) !important;
+}
+.secondary-button, .ghost-button {
+  background: #e0f2fe !important;
+  color: #0c4a6e !important;
+  border: 1.5px solid #7dd3fc !important;
+  font-weight: 700 !important;
+}
+
+.farm-to-store {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #0a1628 !important;
+}
+
+.topbar, .rbac-topbar, .rbac-topbar-sticky {
+  background: #ffffff !important;
+  border-bottom: 2px solid #94b8d0 !important;
+  color: #0a1628 !important;
+}
+
+
+/* ===== Stacked cards + side margins (exact Farm→Store pattern) ===== */
+.trade-dashboard,
+.farm-to-store {
+  max-width: 1460px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  box-sizing: border-box;
+  overflow-x: hidden !important;
+}
+.trade-dashboard .kpi-grid,
+.fts-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 0 16px !important;
+}
+.trade-dashboard .kpi-card,
+.fts-kpi {
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  background: rgba(255,255,255,0.2) !important;
+  border: 1px solid rgba(15, 70, 110, 0.1) !important;
+  box-shadow: 0 6px 18px rgba(15, 40, 70, 0.05) !important;
+  color: #0b2540 !important;
+}
+.trade-dashboard .kpi-card span,
+.fts-kpi span {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a7a94 !important;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.trade-dashboard .kpi-card strong,
+.fts-kpi strong {
+  font-size: 1.15rem !important;
+  color: #0b2540 !important;
+}
+.trade-dashboard .kpi-card small {
+  display: block;
+  margin-top: 4px;
+  color: #5a7a94 !important;
+  font-size: 11px;
+}
+.trade-dashboard .charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.trade-dashboard .panel,
+.trade-dashboard .table-panel,
+.trade-dashboard .chart-panel,
+.trade-dashboard .sidebar-panel,
+.contract-panel,
+.fts-panel {
+  background: rgba(255,255,255,0.2) !important;
+  border: 1px solid rgba(15, 70, 110, 0.12) !important;
+  border-radius: 16px !important;
+  padding: 14px 16px !important;
+  box-shadow: 0 8px 28px rgba(15, 40, 70, 0.06) !important;
+  color: #0f2740 !important;
+  overflow: hidden !important; /* card clips; table scrolls inside */
+}
+.trade-dashboard .layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 24px;
+  max-width: 100%;
+  overflow: hidden;
+}
+@media (max-width: 980px) {
+  .trade-dashboard .layout { grid-template-columns: 1fr; }
+}
+.trade-dashboard .table-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  gap: 12px;
+}
+.trade-dashboard .table-panel .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.trade-dashboard .table-panel .table-wrap,
+.trade-dashboard .table-wrap {
+  flex: 1 1 auto;
+  min-height: 240px;
+  max-height: min(52vh, 520px) !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: rgba(255,255,255,0.2) !important;
+  overscroll-behavior: contain;
+  margin: 0 !important;
+}
+.trade-dashboard .table-wrap table {
+  width: max-content !important;
+  min-width: 100%;
+  border-collapse: collapse !important;
+  background: rgba(255,255,255,0.2) !important;
+}
+.trade-dashboard .table-wrap th,
+.trade-dashboard .table-wrap td {
+  padding: 9px 11px !important;
+  font-size: 12px !important;
+  background: rgba(255,255,255,0.2) !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #eef2f6 !important;
+}
+.trade-dashboard .table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(255,255,255,0.2) !important;
+  color: #334155 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.trade-dashboard .panel-header,
+.trade-dashboard .panel-header h3,
+.trade-dashboard .panel-header small {
+  color: #0b2540 !important;
+}
+.trade-dashboard .panel-header small { color: #5a7a94 !important; }
+
+/* ===== All tables match Farm→Store white table ===== */
+.table-wrap,
+.shipment-table-scroll,
+.contract-table-wrap .table-wrap,
+.contract-panel .table-wrap,
+.app-shell .table-wrap {
+  overflow: auto !important;
+  max-height: min(62vh, 640px);
+  min-height: 220px;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: rgba(255,255,255,0.2) !important;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap table,
+.shipment-table-scroll table,
+.contract-table-wrap table,
+.app-shell .table-wrap table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  background: rgba(255,255,255,0.2) !important;
+  color: #0f172a !important;
+}
+.table-wrap th,
+.table-wrap td,
+.shipment-table-scroll th,
+.shipment-table-scroll td,
+.contract-table-wrap th,
+.contract-table-wrap td,
+.app-shell .table-wrap th,
+.app-shell .table-wrap td {
+  padding: 9px 11px !important;
+  font-size: 12px !important;
+  text-align: left !important;
+  white-space: nowrap;
+  border-bottom: 1px solid #eef2f6 !important;
+  color: #0f172a !important;
+  background: rgba(255,255,255,0.2) !important;
+}
+.table-wrap thead th,
+.table-wrap th,
+.shipment-table-scroll thead th,
+.contract-table-wrap thead th,
+.app-shell .table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(255,255,255,0.2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px !important;
+  font-weight: 700;
+  color: #334155 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 0 1px 0 #e2e8f0 !important;
+}
+.table-wrap tbody tr:nth-child(even) td,
+.shipment-table-scroll tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.2) !important;
+}
+.table-wrap tbody tr:hover td,
+.shipment-table-scroll tbody tr:hover td,
+.contract-table-wrap tbody tr:hover td {
+  background: #f8fafc !important;
+}
+/* status pills like farm-store */
+.table-wrap .status-pill,
+.table-wrap .pill,
+.contract-panel .status-pill {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
       `}</style>
       <header className="topbar">
         <div className="brand-block">
