@@ -434,7 +434,7 @@ function FarmToStoreStyles(): JSX.Element {
   margin: 0 auto;
   padding: 18px 16px 36px;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   color: #0f2740;
   background:
     radial-gradient(ellipse 80% 50% at 0% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
@@ -556,7 +556,7 @@ function FarmToStoreStyles(): JSX.Element {
   border-bottom: 1px solid #eef2f6; color: #0f172a; background: rgba(255,255,255,0.2);
 }
 .farm-to-store th {
-  position: sticky; top: 0; z-index: 2;
+  position: sticky; top: 0; z-index: 5;
   background: linear-gradient(180deg, #0f3a56 0%, #144866 100%);
   text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #e8f4fc;
 }
@@ -600,6 +600,31 @@ function FarmToStoreStyles(): JSX.Element {
   position: fixed !important; inset: 0 !important; z-index: 2147483000 !important;
   background: rgba(15, 30, 50, 0.4); backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; padding: 16px;
+  isolation: isolate;
+}
+/* Contract / payment / weekly form modals */
+.modal-backdrop {
+  position: fixed !important; inset: 0 !important; z-index: 2147483000 !important;
+  background: rgba(15, 30, 50, 0.4); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  isolation: isolate;
+}
+.modal-card {
+  width: min(720px, 100%); max-height: 90vh; overflow: auto;
+  border-radius: 18px; padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 70, 110, 0.14);
+  box-shadow: 0 28px 70px rgba(15, 40, 70, 0.22);
+  position: relative; z-index: 2147483001;
+}
+.modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px;
+}
+.modal-header h3 { margin: 0; color: #0b2540; }
+.close-button {
+  border: none; background: #e8f1f8; color: #0b2540; width: 36px; height: 36px;
+  border-radius: 10px; font-size: 20px; line-height: 1; cursor: pointer;
 }
 .fts-modal {
   width: min(720px, 100%); max-height: 90vh; overflow: auto;
@@ -2896,6 +2921,18 @@ export default function ExportApp({
 
   return (
     <div className="app-shell">
+      <style data-uu-export-modal-global>{`
+        .rbac-topbar, .rbac-topbar-sticky, .rbac-module-nav, .topbar {
+          z-index: 40 !important;
+        }
+        body > [data-uu-export-modal],
+        body > .fts-modal-backdrop,
+        body > .modal-backdrop {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 2147483646 !important;
+        }
+      `}</style>
       <header className="topbar">
         <div className="brand-block">
           <small className="eyebrow">Export operations</small>
